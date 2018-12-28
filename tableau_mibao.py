@@ -45,6 +45,13 @@ sql = '''SELECT table_name, column_name, DATA_TYPE, COLUMN_COMMENT FROM informat
 df = pd.read_sql(sql, sql_conn)
 save_data(df, "mibao_comment.csv")
 
+
+# 需要读取的数据库表
+sql_tables = ['bargain_help', 'face_id', 'face_id_liveness', 'jimi_order_check_result', 'order', 'order_detail',
+              'order_express', 'order_goods', 'order_phone_book', 'risk_order', 'tongdun', 'user', 'user_credit',
+              'user_device', 'user_third_party_account', 'user_zhima_cert', 'credit_audit_order', 'risk_white_list']
+
+# 数据库表中的相关字段
 order_features = ['id', 'create_time', 'deleted',
       'lease_start_time',
        'lease_expire_time', 'finished_time', 'canceled_time',
@@ -78,38 +85,7 @@ order_features = ['id', 'create_time', 'deleted',
        'merchant_credit_check_result', 'disposable_payment_limit_day',
        'instalment_pay_enable', 'select_disposable_payment_enabled',
        'settlement', 'settlement_transaction_no']
-user_features = ['id', 'head_image_url', 'recommend_code', 'regist_channel_type', 'share_callback', 'tag', 'phone']
-bargain_help_features = ['user_id']
-face_id_features = ['user_id', 'status']
-face_id_liveness_features = ['order_id', 'status']
-user_credit_features = ['user_id', 'cert_no', 'workplace', 'idcard_pros', 'occupational_identity_type',
-                        'company_phone', 'cert_no_expiry_date', 'cert_no_json', ]
-user_device_features = ['user_id', 'device_type', 'regist_device_info', 'regist_useragent', 'ingress_type']
-order_express_features = ['order_id', 'zmxy_score', 'card_id', 'phone', 'company']
-order_detail_features = ['order_id', 'order_detail']
-order_goods_features = ['order_id', 'price', 'category', 'old_level']
-order_phone_book_features = ['order_id', 'phone_book']
-risk_order_features = ['order_id', 'type', 'result', 'detail_json', 'remark']
-tongdun_features = ['order_number', 'final_score', 'final_decision']
-user_third_party_account_features = ['user_id']
-user_zhima_cert_features = ['user_id', 'status']
-risk_white_list_features = ['user_id']
-jimi_order_check_result_features = ['order_id', 'check_remark']
-credit_audit_order_features = ['order_id', 'state', 'remark']
 
-order_df = read_data('order', order_features, is_sql=is_sql)
-# 需要读取的数据库表
-sql_tables = ['bargain_help', 'face_id', 'face_id_liveness', 'jimi_order_check_result', 'order', 'order_detail',
-              'order_express', 'order_goods', 'order_phone_book', 'risk_order', 'tongdun', 'user', 'user_credit',
-              'user_device', 'user_third_party_account', 'user_zhima_cert', 'credit_audit_order', 'risk_white_list']
-
-# 数据库表中的相关字段
-order_features = ['id', 'create_time', 'merchant_id', 'user_id', 'state', 'cost', 'installment', 'pay_num',
-                  'added_service', 'bounds_example_id', 'goods_type', 'lease_term',
-                  'commented', 'accident_insurance', 'type', 'order_type', 'device_type', 'source', 'distance',
-                  'disposable_payment_discount', 'disposable_payment_enabled', 'lease_num', 'merchant_store_id',
-                  'deposit', 'hit_merchant_white_list', 'fingerprint', 'cancel_reason', 'delivery_way',
-                  'order_number', 'joke']
 user_features = ['id', 'head_image_url', 'recommend_code', 'regist_channel_type', 'share_callback', 'tag', 'phone']
 bargain_help_features = ['user_id']
 face_id_features = ['user_id', 'status']
