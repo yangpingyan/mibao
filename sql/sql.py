@@ -3,12 +3,10 @@
 # @Time : 2018/12/28 15:06 
 # @Author : yangpingyan@gmail.com
 
-from sshtunnel import SSHTunnelForwarder
 import os
-import pymysql
 import json
 import pandas as pd
-from datetime import datetime
+from sshtunnel import SSHTunnelForwarder
 from sqlalchemy import create_engine
 
 def sql_connect(database_name, sql_file, ssh_pkey=None):
