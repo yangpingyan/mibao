@@ -22,7 +22,7 @@ def sql_connect(database_name, sql_file, ssh_pkey=None):
     sql_user = sql_info['sql_user']
     sql_password = sql_info['sql_password']
     if ssh_pkey == None:
-        sql_engine = create_engine(
+        sql_conn = create_engine(
             'mysql+pymysql://{}:{}@{}:3306/{}'.format(sql_user, sql_password, sql_address, database_name))
         print("Access MySQL directly")
     else:
@@ -31,26 +31,22 @@ def sql_connect(database_name, sql_file, ssh_pkey=None):
                                     ssh_pkey=ssh_pkey,
                                     remote_bind_address=(sql_address, 3306))
         server.start()
-        sql_engine = create_engine(
+        sql_conn = create_engine(
             'mysql+pymysql://{}:{}@127.0.0.1:{}/{}'.format(sql_user, sql_password, server.local_bind_port, database_name))
         print("Access MySQL with SSH tunnel forward")
 
-    return sql_engine
+    return sql_conn
 
-workdir = r'./'
-sql_file = os.path.join(workdir, 'sql_mibao.json')
-ssh_pkey = os.path.join(workdir, 'sql_pkey')
-sql_engine = get_sql_engine()
+if __name__ == '__main__':
 
-def read_sql_query(sql):
-    global sql_engine
+    workdir = r'./sql'
+    sql_file = os.path.join(workdir, 'sql_mibao.json')
+    ssh_pkey = os.path.join(workdir, 'sql_pkey')
+    sql_conn = sql_connect('mibao_rds', sql_file, ssh_pkey)
+    sql = '''SELECT * FROM `order` o WHERE o.deleted != 1 ORDER BY id DESC LIMIT 100;'''
+    df = pd.read_sql(sql, sql_conn)
+    print(df)
 
-    try:
-        df = pd.read_sql_query(sql, sql_engine)
-    except:
-        sql_engine = get_sql_engine()
-        df = pd.read_sql_query(sql, sql_engine)
 
-    return df
 
 
