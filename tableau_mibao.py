@@ -13,6 +13,7 @@ import time
 is_sql = False
 data_path = r'./data'
 
+
 def sql_connect_mibao_rds():
     workdir = r'./sql'
     sql_file = os.path.join(workdir, 'sql_mibao.json')
@@ -23,12 +24,14 @@ def sql_connect_mibao_rds():
     # print(df)
     return sql_conn
 
+
 sql_conn = sql_connect_mibao_rds()
 
 
 def read_sql_query(sql):
     df = pd.read_sql(sql, sql_conn)
     return df
+
 
 # def read_data(filename, features, is_sql=False):
 #     # starttime = time.clock()
@@ -45,47 +48,44 @@ def read_sql_query(sql):
 #     return df
 
 
-
-
 # 需要读取的数据库表
 sql_tables = ['bargain_help', 'face_id', 'face_id_liveness', 'jimi_order_check_result', 'order', 'order_detail',
               'order_express', 'order_goods', 'order_phone_book', 'risk_order', 'tongdun', 'user', 'user_credit',
               'user_device', 'user_third_party_account', 'user_zhima_cert', 'credit_audit_order', 'risk_white_list']
 
 # 数据库表中的相关字段
-order_features = ['id', 'create_time', 'deleted',
-      'lease_start_time',
-       'lease_expire_time', 'finished_time', 'canceled_time',
-       'received_time', 'delivery_time', 'last_pay_time',
-       'order_number', 'merchant_id', 'merchant_name', 'user_id',
-       'user_name', 'goods_name', 'state', 'cost', 'discount',
-       'installment', 'next_pay_time', 'rem_pay_num',
-       'pay_num', 'added_service',
-       'first_pay', 'first_pay_time', 'full', 'billing_method',
-       'liquidated_damages_percent', 'channel', 'pay_type',
-       'user_receive_time', 'reminded', 'bounds_example_id',
-       'bounds_example_name', 'bounds_example_no', 'goods_type',
-       'cash_pledge', 'cancel_reason',
-       'cancel_mode', 'clearance_time', 'paid_amount',
-       'credit_check_author', 'lease_term', 'commented',
-       'daily_rent', 'accident_insurance',
-       'description', 'type', 'freeze_money', 'sign_state',
-       'best_sign_channel', 'doc_id', 'handheld_photo', 'ip', 'pid',
-       'releted', 'service_enable', 'exchange_enable',
-       'relet_appliable', 'order_type', 'delivery_way', 'buyouted',
-       'buyout_appliable', 'mac_address',
-       'imei', 'device_type', 'joke', 'hand_id_card', 'id_card_pros',
-       'id_card_cons', 'stages', 'source', 'distance',
-       'disposable_payment_discount', 'disposable_payment_enabled',
-       'custom_lease', 'activity_id', 'lease_num',
-       'credit_check_result', 'user_remark', 'original_daily_rent',
-       'merchant_store_id', 'deposit', 'deposit_type',
-       'hit_merchant_white_list', 'pick_up_merchant_store_id',
-       'receive_merchant_store_id', 'api_version', 'fingerprint',
-       'finished_state', 'hit_goods_white_list', 'buyout_coefficient',
-       'merchant_credit_check_result', 'disposable_payment_limit_day',
-       'instalment_pay_enable', 'select_disposable_payment_enabled',
-       'settlement', 'settlement_transaction_no']
+order_features = ['id', 'create_time', 'deleted', 'lease_start_time', 'lease_expire_time', 'finished_time',
+                  'canceled_time', 'received_time', 'delivery_time', 'last_pay_time', 'order_number', 'merchant_id',
+                  'merchant_name', 'user_id', 'user_name', 'goods_name',
+
+                  'state', 'cost', 'discount',
+                  'installment', 'next_pay_time', 'rem_pay_num',
+                  'pay_num', 'added_service',
+                  'first_pay', 'first_pay_time', 'full', 'billing_method',
+                  'liquidated_damages_percent', 'channel', 'pay_type',
+                  'user_receive_time', 'reminded', 'bounds_example_id',
+                  'bounds_example_name', 'bounds_example_no', 'goods_type',
+                  'cash_pledge', 'cancel_reason',
+                  'cancel_mode', 'clearance_time', 'paid_amount',
+                  'credit_check_author', 'lease_term', 'commented',
+                  'daily_rent', 'accident_insurance',
+                  'description', 'type', 'freeze_money', 'sign_state',
+                  'handheld_photo', 'ip', 'pid',
+                  'releted', 'service_enable', 'exchange_enable',
+                  'relet_appliable', 'order_type', 'delivery_way', 'buyouted',
+                  'buyout_appliable', 'mac_address',
+                  'device_type', 'hand_id_card', 'id_card_pros',
+                  'id_card_cons', 'stages', 'source', 'distance',
+                  'disposable_payment_discount', 'disposable_payment_enabled',
+                  'custom_lease', 'activity_id', 'lease_num',
+                  'credit_check_result', 'user_remark', 'original_daily_rent',
+                  'merchant_store_id', 'deposit', 'deposit_type',
+                  'hit_merchant_white_list', 'pick_up_merchant_store_id',
+                  'receive_merchant_store_id', 'api_version', 'fingerprint',
+                  'finished_state', 'hit_goods_white_list', 'buyout_coefficient',
+                  'merchant_credit_check_result', 'disposable_payment_limit_day',
+                  'instalment_pay_enable', 'select_disposable_payment_enabled',
+                  'settlement', 'settlement_transaction_no']
 
 user_features = ['id', 'head_image_url', 'recommend_code', 'regist_channel_type', 'share_callback', 'tag', 'phone']
 bargain_help_features = ['user_id']
@@ -107,24 +107,14 @@ jimi_order_check_result_features = ['order_id', 'check_remark']
 credit_audit_order_features = ['order_id', 'state', 'remark']
 
 # order中的state 分类
-state_values = ['pending_receive_goods', 'running', 'user_canceled', 'pending_pay', 'exchange_goods',
-                'artificial_credit_check_unpass_canceled', 'pending_artificial_credit_check', 'lease_finished',
-                'return_overdue', 'order_payment_overtime_canceled', 'pending_send_goods',
-                'merchant_not_yet_send_canceled', 'running_overdue', 'buyout_finished', 'pending_user_compensate',
-                'repairing', 'express_rejection_canceled', 'pending_return', 'returning', 'return_goods',
-                'pending_relet_check', 'returned_received', 'relet_finished', 'merchant_relet_check_unpass_canceled',
-                'system_credit_check_unpass_canceled', 'pending_jimi_credit_check', 'pending_relet_start',
-                'pending_refund_deposit', 'merchant_credit_check_unpass_canceled', 'pending_order_receiving',
-                'pending_relet_pay', 'pending_compensate_check']
 pass_state_values = ['pending_receive_goods', 'running', 'lease_finished', 'pending_send_goods',
                      'merchant_not_yet_send_canceled', 'buyout_finished', 'pending_user_compensate', 'repairing',
                      'express_rejection_canceled', 'pending_return', 'returning', 'return_goods', 'returned_received',
                      'relet_finished', 'pending_refund_deposit', 'exchange_goods', 'pending_relet_pay',
-                     'pending_compensate_check']
+                     'pending_compensate_check', 'pending_buyout_pay']
 failure_state_values = ['artificial_credit_check_unpass_canceled', 'return_overdue', 'running_overdue',
                         'system_credit_check_unpass_canceled',
-                        'merchant_relet_check_unpass_canceled', 'merchant_credit_check_unpass_canceled'
-                        ]
+                        'merchant_relet_check_unpass_canceled', 'merchant_credit_check_unpass_canceled']
 unknow_state_values = ['pending_order_receiving', 'pending_jimi_credit_check', 'order_payment_overtime_canceled',
                        'pending_artificial_credit_check', 'user_canceled', 'pending_relet_start',
                        'pending_relet_check', 'pending_pay']
@@ -147,8 +137,6 @@ mibao_ml_features = ['merchant_id', 'pay_num', 'added_service',
                      # 'account_num' #用到了事后数据，需处理下
                      # 'deposit', 'type',  #有押金的审核肯定通过
                      ]
-
-
 
 
 def process_data_mibao(df):
@@ -347,6 +335,7 @@ def process_data_mibao(df):
 
     return df
 
+
 def save_data(df, filename):
     df.to_csv(os.path.join(data_path, filename), index=False)
 
@@ -363,6 +352,7 @@ def read_data(filename, features, field='order_id', field_value=None):
     print(filename, time.clock() - starttime)
     return df
 
+
 def get_all_data_mibao():
     df = get_order_data()
     save_data(df, "mibao.csv")
@@ -373,11 +363,12 @@ def get_all_data_mibao():
 
     return df
 
-def bit_process(df:pd.DataFrame):
+def bit_process(df: pd.DataFrame):
     df = df.astype(str)
     df.fillna('0', inplace=True)
     df = np.where(df.str.contains('1'), 1, 0)
     return df
+
 
 # In[]
 
@@ -393,57 +384,54 @@ def get_order_data(order_id=None):
     if order_id != None:
         user_id = order_df.at[0, 'user_id']
         order_number = order_df.at[0, 'order_number']
-    df = order_df.copy()
-    features = ['deleted', 'installment', 'commented', 'disposable_payment_enabled', 'joke']
-    for feature in features:
-        df[feature] = bit_process(df[feature])
+    all_data_df = order_df.copy()
 
-    df = df[df['deleted'] != 1]
-    df.drop(['deleted', ], axis=1, inplace=True, errors='ignore')
+    # 若state字段有新的状态产生， 抛出异常
+    state_values_newest = all_data_df['state'].unique().tolist()
+    state_values = pass_state_values + failure_state_values + unknow_state_values
+    print(list(set(state_values_newest).difference(set(state_values))))
+    assert (len(list(set(state_values_newest).difference(set(state_values)))) == 0)
 
-
-    df['freight'].value_counts()
     # 读取并处理表 user
-    user_df = read_data('user', user_features, 'id', user_id, is_sql)
+    user_df = read_data('user', user_features, 'id', user_id)
     user_df.rename(columns={'id': 'user_id', 'phone': 'phone_user'}, inplace=True)
     all_data_df = pd.merge(all_data_df, user_df, on='user_id', how='left')
 
     # 读取并处理表 bargain_help
-    bargain_help_df = read_data('bargain_help', bargain_help_features, 'user_id', user_id, is_sql)
+    bargain_help_df = read_data('bargain_help', bargain_help_features, 'user_id', user_id)
     all_data_df['have_bargain_help'] = np.where(all_data_df['user_id'].isin(bargain_help_df['user_id'].values), 1, 0)
 
     # 读取并处理表 face_id
-    face_id_df = read_data('face_id', face_id_features, 'user_id', user_id, is_sql)
+    face_id_df = read_data('face_id', face_id_features, 'user_id', user_id)
     face_id_df.rename(columns={'status': 'face_check'}, inplace=True)
     all_data_df = pd.merge(all_data_df, face_id_df, on='user_id', how='left')
 
     # 读取并处理表 face_id_liveness
-    face_id_liveness_df = read_data('face_id_liveness', ['order_id', 'status'], 'order_id', order_id, is_sql)
+    face_id_liveness_df = read_data('face_id_liveness', ['order_id', 'status'], 'order_id', order_id)
     face_id_liveness_df.rename(columns={'status': 'face_live_check'}, inplace=True)
     all_data_df = pd.merge(all_data_df, face_id_liveness_df, on='order_id', how='left')
 
     # 读取并处理表 user_credit
-    user_credit_df = read_data('user_credit', user_credit_features, 'user_id', user_id, is_sql)
+    user_credit_df = read_data('user_credit', user_credit_features, 'user_id', user_id)
     all_data_df = pd.merge(all_data_df, user_credit_df, on='user_id', how='left')
 
     # 读取并处理表 user_device
-    user_device_df = read_data('user_device', user_device_features, 'user_id', user_id, is_sql)
+    user_device_df = read_data('user_device', user_device_features, 'user_id', user_id)
     user_device_df.rename(columns={'device_type': 'device_type_os'}, inplace=True)
     all_data_df = pd.merge(all_data_df, user_device_df, on='user_id', how='left')
 
     # 读取并处理表 order_express
     # 未处理特征：'country', 'provice', 'city', 'regoin', 'receive_address', 'live_address'
-    order_express_df = read_data('order_express', order_express_features, 'order_id', order_id, is_sql)
+    order_express_df = read_data('order_express', order_express_features, 'order_id', order_id)
     order_express_df.drop_duplicates(subset='order_id', inplace=True)
     all_data_df = pd.merge(all_data_df, order_express_df, on='order_id', how='left')
 
     # 读取并处理表 order_detail
-    order_detail_df = read_data('order_detail', order_detail_features, 'order_id', order_id, is_sql)
+    order_detail_df = read_data('order_detail', order_detail_features, 'order_id', order_id)
     all_data_df = pd.merge(all_data_df, order_detail_df, on='order_id', how='left')
 
     # 读取并处理表 order_goods
-    order_goods_df = read_data('order_goods', order_goods_features, 'order_id', order_id,
-                                 is_sql)
+    order_goods_df = read_data('order_goods', order_goods_features, 'order_id', order_id)
     order_goods_df.drop_duplicates(subset='order_id', inplace=True)
     all_data_df = pd.merge(all_data_df, order_goods_df, on='order_id', how='left')
 
@@ -458,15 +446,14 @@ def get_order_data(order_id=None):
 
         return len(set(name_list))
 
-    order_phone_book_df = read_data('order_phone_book', ['order_id', 'phone_book'], 'order_id', order_id, is_sql)
+    order_phone_book_df = read_data('order_phone_book', ['order_id', 'phone_book'], 'order_id', order_id)
     order_phone_book_df['phone_book'] = order_phone_book_df['phone_book'].map(count_name_nums)
 
     all_data_df = pd.merge(all_data_df, order_phone_book_df, on='order_id', how='left')
     all_data_df['phone_book'].fillna(value=0, inplace=True)
 
     # 读取并处理表 risk_order
-    risk_order_df = read_data('risk_order', risk_order_features, 'order_id', order_id,
-                                is_sql)
+    risk_order_df = read_data('risk_order', risk_order_features, 'order_id', order_id)
     risk_order_df['result'] = risk_order_df['result'].str.lower()
     for risk_type in ['tongdun', 'mibao', 'guanzhu', 'bai_qi_shi']:
         tmp_df = risk_order_df[risk_order_df['type'].str.match(risk_type)][
@@ -477,64 +464,54 @@ def get_order_data(order_id=None):
             inplace=True)
         all_data_df = pd.merge(all_data_df, tmp_df, on='order_id', how='left')
     # 读取并处理表 tongdun
-    tongdun_df = read_data('tongdun', tongdun_features, 'order_number', order_number,
-                             is_sql)
+    tongdun_df = read_data('tongdun', tongdun_features, 'order_number', order_number)
     all_data_df = pd.merge(all_data_df, tongdun_df, on='order_number', how='left')
 
     # 读取并处理表 user_third_party_account
-    user_third_party_account_df = read_data('user_third_party_account', ['user_id'], 'user_id', user_id, is_sql)
+    user_third_party_account_df = read_data('user_third_party_account', ['user_id'], 'user_id', user_id)
     counts_df = pd.DataFrame({'account_num': user_third_party_account_df['user_id'].value_counts()})
     counts_df['user_id'] = counts_df.index
     all_data_df = pd.merge(all_data_df, counts_df, on='user_id', how='left')
 
     # 读取并处理表 user_zhima_cert
-    df = read_data('user_zhima_cert', user_zhima_cert_features, 'user_id', user_id, is_sql)
+    df = read_data('user_zhima_cert', user_zhima_cert_features, 'user_id', user_id)
     all_data_df['zhima_cert_result'] = np.where(all_data_df['user_id'].isin(df['user_id'].tolist()), 1, 0)
 
     # 读取并处理表 jimi_order_check_result
-    df = read_data('jimi_order_check_result', jimi_order_check_result_features, 'order_id', order_id, is_sql)
+    df = read_data('jimi_order_check_result', jimi_order_check_result_features, 'order_id', order_id)
     all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
 
     # 读取并处理表 credit_audit_order
-    df = read_data('credit_audit_order', credit_audit_order_features, 'order_id', order_id, is_sql)
+    df = read_data('credit_audit_order', credit_audit_order_features, 'order_id', order_id)
     df.rename(columns={'state': 'state_cao', 'remark': 'remark_cao'}, inplace=True)
     all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
 
     # 特殊字符串的列预先处理下：
-    features = ['installment', 'commented', 'disposable_payment_enabled', 'face_check', 'joke', 'face_live_check']
-    # df = all_data_df.copy()
+    features = ['installment', 'commented', 'disposable_payment_enabled', 'face_check', 'face_live_check']
     for feature in features:
-        # print(all_data_df[feature].value_counts())
-        all_data_df[feature] = all_data_df[feature].astype(str)
-        all_data_df[feature].fillna('0', inplace=True)
-        all_data_df[feature] = np.where(all_data_df[feature].str.contains('1'), 1, 0)
-        # print(all_data_df[feature].value_counts())
+        all_data_df[feature] = bit_process(all_data_df[feature])
 
+    # 去除软删除标志的数据
+    all_data_df = all_data_df[all_data_df['deleted'] != 1]
+    # 去除测试数据和内部员工数据
+    all_data_df = all_data_df[all_data_df['cancel_reason'].str.contains('测试') != True]
+    all_data_df = all_data_df[all_data_df['check_remark'].str.contains('测试') != True]
+
+
+    # 标注人工审核结果于target_state字段
+    df['target_state'] = None
+    # 未处理订单
+    # 机审拒绝
+    # 人审拒绝
+    # 机审或人审拒绝后， 押金订单
+    # 人审通过
+    df.loc[df['state_cao'].isin(['manual_check_fail']), 'target'] = 0
+    df.loc[df['state_cao'].isin(['manual_check_success']), 'target'] = 1
+    df.loc[df['state'].isin(pass_state_values), 'target'] = 1
+    df.loc[df['state'].isin(failure_state_values), 'target'] = 0
+    df = df[df['target'].notnull()]
+    df['target'].value_counts()
+    df['state'].value_counts()
+
+    save_data(all_data_df, 'mibao.csv')
     return all_data_df
-
-
-if __name__ == '__main__':
-    # sql_tables = ['risk_white_list']
-    save_all_tables_mibao()
-    print(__name__)
-
-
-
-all_data_df = df.copy()
-# 特殊字符串的列预先处理下：
-df = all_data_df
-features = ['deleted', 'installment', 'commented', 'disposable_payment_enabled', 'joke']
-for feature in features:
-    # print(all_data_df[feature].value_counts())
-    df[feature] = df[feature].astype(str)
-    df[feature].fillna('0', inplace=True)
-    df[feature] = np.where(df[feature].str.contains('1'), 1, 0)
-df = df[df['deleted'] != 1]
-df['create_time'] = pd.to_datetime(df['create_time'])
-save_data(df, 'mibao.csv')
-
-df['create_time'] = pd.to_datetime(df['create_time'])
-df['year'] = df['create_time'].map(lambda x: x.year)
-df['year'].value_counts()
-# df = pd.read_sql('''SELECT * FROM `order` o LIMIT 100;''', sql_conn)
-# df.columns.values
