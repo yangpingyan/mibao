@@ -49,7 +49,7 @@ def read_sql_query(sql):
 
 
 # 需要读取的数据库表
-sql_tables = ['bargain_help', 'face_id', 'face_id_liveness', 'jimi_order_check_result', 'order', 'order_detail',
+sql_tables = ['face_id', 'face_id_liveness', 'jimi_order_check_result', 'order', 'order_detail',
               'order_express', 'order_goods', 'order_phone_book', 'risk_order', 'tongdun', 'user', 'user_credit',
               'user_device', 'user_third_party_account', 'user_zhima_cert', 'credit_audit_order', 'risk_white_list']
 
@@ -87,9 +87,8 @@ order_features = ['id', 'create_time', 'deleted', 'lease_start_time', 'lease_exp
                   'instalment_pay_enable', 'select_disposable_payment_enabled',
                   'settlement', 'settlement_transaction_no']
 
-user_features = ['id', 'head_image_url', 'recommend_code', 'regist_channel_type', 'share_callback', 'tag', 'phone']
-bargain_help_features = ['user_id']
-face_id_features = ['user_id', 'status']
+user_features = ['id','create_time', 'head_image_url', 'recommend_code', 'regist_channel_type', 'share_callback', 'tag', 'phone']
+face_id_features = ['user_id', 'status', 'liveness_status']
 face_id_liveness_features = ['order_id', 'status']
 user_credit_features = ['user_id', 'cert_no', 'workplace', 'idcard_pros', 'occupational_identity_type',
                         'company_phone', 'cert_no_expiry_date', 'cert_no_json', ]
@@ -100,12 +99,19 @@ order_goods_features = ['order_id', 'price', 'category', 'old_level']
 order_phone_book_features = ['order_id', 'phone_book']
 risk_order_features = ['order_id', 'type', 'result', 'detail_json', 'remark']
 tongdun_features = ['order_number', 'final_score', 'final_decision']
-user_third_party_account_features = ['user_id']
+user_third_party_account_features = ['user_id', 'create_time']
 user_zhima_cert_features = ['user_id', 'status']
 risk_white_list_features = ['user_id']
 jimi_order_check_result_features = ['order_id', 'check_remark']
-credit_audit_order_features = ['order_id', 'state', 'remark']
-
+credit_audit_order_features = ['order_id','create_time', 'admin_name', 'state', 'remark', 'manual_check_start_time', 'manual_check_end_time', 'order_cancle_time']
+order_xinyongzu_features = []
+user_bonus_features = []
+user_login_log_features = []
+user_login_record_features = []
+user_longitude_latitude_feature = []
+user_wx_account_features = []
+xiaobai_features = []
+_
 # order中的state 分类
 pass_state_values = ['pending_receive_goods', 'running', 'lease_finished', 'pending_send_goods',
                      'merchant_not_yet_send_canceled', 'buyout_finished', 'pending_user_compensate', 'repairing',
@@ -126,7 +132,7 @@ mibao_ml_features = ['merchant_id', 'pay_num', 'added_service',
                      'goods_type', 'lease_term', 'commented', 'accident_insurance', 'order_type', 'device_type',
                      'source', 'distance', 'disposable_payment_discount', 'disposable_payment_enabled',
                      'merchant_store_id', 'fingerprint', 'delivery_way', 'head_image_url', 'recommend_code',
-                     'regist_channel_type', 'share_callback', 'tag', 'have_bargain_help', 'face_check', 'phone',
+                     'regist_channel_type', 'share_callback', 'tag', 'face_check', 'phone',
                      'company', 'company_phone', 'category', 'old_level', 'tongdun_result', 'guanzhu_result',
                      'bai_qi_shi_result', 'workplace', 'idcard_pros', 'occupational_identity_type', 'device_type_os',
                      'regist_device_info', 'ingress_type', 'baiqishi_score', 'zhima_cert_result', 'age', 'sex', 'zmf',
@@ -344,9 +350,9 @@ def read_data(table_name, features, field='order_id', field_value=None):
     starttime = time.clock()
     if field_value == None:
         if table_name in ['user_device', 'order_express', 'order_detail', 'order_phone_book', 'user_third_party_account']:
-            sql = "SELECT {} FROM `{}` s LIMIT 1;".format(",".join(features), table_name, field)
+            sql = "SELECT {} FROM `{}` s LIMIT 2000;".format(",".join(features), table_name, field)
         else:
-            sql = "SELECT {} FROM `{}` s WHERE s.deleted != 1 LIMIT 1;".format(",".join(features), table_name, field)
+            sql = "SELECT {} FROM `{}` s WHERE s.deleted != 1 LIMIT 2000;".format(",".join(features), table_name, field)
     else:
         sql = "SELECT {} FROM `{}` o WHERE o.{} = {};".format(",".join(features), table_name, field, field_value)
 
@@ -400,9 +406,6 @@ def get_order_data(order_id=None):
     user_df.rename(columns={'id': 'user_id', 'phone': 'phone_user'}, inplace=True)
     all_data_df = pd.merge(all_data_df, user_df, on='user_id', how='left')
 
-    # 读取并处理表 bargain_help
-    bargain_help_df = read_data('bargain_help', bargain_help_features, 'user_id', user_id)
-    all_data_df['have_bargain_help'] = np.where(all_data_df['user_id'].isin(bargain_help_df['user_id'].values), 1, 0)
 
     # 读取并处理表 face_id
     face_id_df = read_data('face_id', face_id_features, 'user_id', user_id)
