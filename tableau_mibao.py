@@ -7,6 +7,11 @@ import pandas as pd
 import os, json
 from sql.sql import sql_connect
 import numpy as np
+import time
+
+# 全局变量定义
+is_sql = False
+data_path = r'./data'
 
 def sql_connect_mibao_rds():
     workdir = r'./sql'
@@ -19,31 +24,27 @@ def sql_connect_mibao_rds():
     return sql_conn
 
 sql_conn = sql_connect_mibao_rds()
-is_sql = True
 
-def read_data(filename, features, is_sql=False):
-    data_path = r'./data'
-    # starttime = time.clock()
-    if is_sql:
-        # sql = '''SELECT {} FROM `{}` o ;'''.format(",".join(features), filename)
-        sql = '''SELECT {} FROM `{}` o ORDER BY o.id DESC LIMIT 1000;'''.format(",".join(features), filename)
-        print(sql)
-        df = pd.read_sql(sql, sql_conn)
-        df.to_csv(os.path.join(data_path, filename + '.csv'), index=False)
-    else:
-        df = pd.read_csv(os.path.join(r'./data', filename + '.csv'), encoding='utf-8', engine='python')
-        df = df[features]
-    # print(filename, time.clock() - starttime)
+
+def read_sql_query(sql):
+    df = pd.read_sql(sql, sql_conn)
     return df
 
-def save_data(df, filename):
-    data_path = r'./data'
-    df.to_csv(os.path.join(data_path, filename), index=False)
+# def read_data(filename, features, is_sql=False):
+#     # starttime = time.clock()
+#     if is_sql:
+#         # sql = '''SELECT {} FROM `{}` o ;'''.format(",".join(features), filename)
+#         sql = '''SELECT {} FROM `{}` o ORDER BY o.id DESC LIMIT 1000;'''.format(",".join(features), filename)
+#         print(sql)
+#         df = pd.read_sql(sql, sql_conn)
+#         df.to_csv(os.path.join(data_path, filename + '.csv'), index=False)
+#     else:
+#         df = pd.read_csv(os.path.join(r'./data', filename + '.csv'), encoding='utf-8', engine='python')
+#         df = df[features]
+#     # print(filename, time.clock() - starttime)
+#     return df
 
-# 保存注释内容
-sql = '''SELECT table_name, column_name, DATA_TYPE, COLUMN_COMMENT FROM information_schema.columns; '''
-df = pd.read_sql(sql, sql_conn)
-save_data(df, "mibao_comment.csv")
+
 
 
 # 需要读取的数据库表
@@ -55,18 +56,18 @@ sql_tables = ['bargain_help', 'face_id', 'face_id_liveness', 'jimi_order_check_r
 order_features = ['id', 'create_time', 'deleted',
       'lease_start_time',
        'lease_expire_time', 'finished_time', 'canceled_time',
-       'received_time', 'delivery_time', 'last_pay_time', 'buyout_time',
+       'received_time', 'delivery_time', 'last_pay_time',
        'order_number', 'merchant_id', 'merchant_name', 'user_id',
-       'user_name', 'goods_name', 'goods_sn', 'state', 'cost', 'discount',
+       'user_name', 'goods_name', 'state', 'cost', 'discount',
        'installment', 'next_pay_time', 'rem_pay_num',
        'pay_num', 'added_service',
        'first_pay', 'first_pay_time', 'full', 'billing_method',
-       'liquidated_damages_percent', 'buffer_days', 'channel', 'pay_type',
+       'liquidated_damages_percent', 'channel', 'pay_type',
        'user_receive_time', 'reminded', 'bounds_example_id',
        'bounds_example_name', 'bounds_example_no', 'goods_type',
        'cash_pledge', 'cancel_reason',
-       'cancel_mode', 'clearance_time', 'freight', 'paid_amount',
-       'credit_check_author', 'reminder_time', 'lease_term', 'commented',
+       'cancel_mode', 'clearance_time', 'paid_amount',
+       'credit_check_author', 'lease_term', 'commented',
        'daily_rent', 'accident_insurance',
        'description', 'type', 'freeze_money', 'sign_state',
        'best_sign_channel', 'doc_id', 'handheld_photo', 'ip', 'pid',
@@ -148,17 +149,6 @@ mibao_ml_features = ['merchant_id', 'pay_num', 'added_service',
                      ]
 
 
-def save_all_tables_mibao():
-    for table in sql_tables:
-        print(table)
-        feature_list = eval(table + '_features')
-        sql = "SELECT {} FROM `{}`;".format(",".join(feature_list), table)
-        df = read_sql_query(sql)
-        df.to_csv("{}.csv".format(os.path.join(workdir, table)), index=False)
-
-    sql = '''SELECT table_name, column_name, DATA_TYPE, COLUMN_COMMENT FROM information_schema.columns; '''
-    df = read_sql_query(sql)
-    df.to_csv("mibao_comment.csv", index=False)
 
 
 def process_data_mibao(df):
@@ -357,73 +347,102 @@ def process_data_mibao(df):
 
     return df
 
+def save_data(df, filename):
+    df.to_csv(os.path.join(data_path, filename), index=False)
 
-def read_mlfile(filename, features, table='order_id', id_value=None, is_sql=False):
-    # starttime = time.clock()
-    if is_sql:
-        sql = "SELECT {} FROM `{}` o WHERE o.{} = {};".format(",".join(features), filename, table, id_value)
-        # print(sql)
-        df = read_sql_query(sql)
+
+def read_data(filename, features, field='order_id', field_value=None):
+    starttime = time.clock()
+    if field_value == None:
+        sql = "SELECT {} FROM `{}` ;".format(",".join(features), filename, field)
     else:
-        df = pd.read_csv(os.path.join(workdir, 'datasets', filename + '.csv'), encoding='utf-8', engine='python')
-        df = df[features]
-    # print(filename, time.clock() - starttime)
+        sql = "SELECT {} FROM `{}` o WHERE o.{} = {};".format(",".join(features), filename, field, field_value)
+
+    print(sql)
+    df = read_sql_query(sql)
+    print(filename, time.clock() - starttime)
     return df
 
+def get_all_data_mibao():
+    df = get_order_data()
+    save_data(df, "mibao.csv")
+    # 保存注释内容
+    sql = '''SELECT table_name, column_name, DATA_TYPE, COLUMN_COMMENT FROM information_schema.columns; '''
+    df = read_sql_query(sql)
+    save_data(df, "mibao_comment.csv")
 
-def get_order_data(order_id=88668, is_sql=False):
-    # 读取order表
-    # log.debug("get_oder_data")
-    order_df = read_mlfile('order', order_features, 'id', order_id, is_sql)
+    return df
 
+def bit_process(df:pd.DataFrame):
+    df = df.astype(str)
+    df.fillna('0', inplace=True)
+    df = np.where(df.str.contains('1'), 1, 0)
+    return df
+
+# In[]
+
+def get_order_data(order_id=None):
+    # 变量初始化
+    user_id = None
+    order_number = None
+    print("读取order表")
+    order_df = read_data('order', order_features, 'id', order_id)
     if len(order_df) == 0:
         return order_df
     order_df.rename(columns={'id': 'order_id'}, inplace=True)
-    user_id = order_df.at[0, 'user_id']
-    order_number = order_df.at[0, 'order_number']
-    all_data_df = order_df.copy()
-    order_df.sort_values('distance', inplace=True)
+    if order_id != None:
+        user_id = order_df.at[0, 'user_id']
+        order_number = order_df.at[0, 'order_number']
+    df = order_df.copy()
+    features = ['deleted', 'installment', 'commented', 'disposable_payment_enabled', 'joke']
+    for feature in features:
+        df[feature] = bit_process(df[feature])
 
+    df = df[df['deleted'] != 1]
+    df.drop(['deleted', ], axis=1, inplace=True, errors='ignore')
+
+
+    df['freight'].value_counts()
     # 读取并处理表 user
-    user_df = read_mlfile('user', user_features, 'id', user_id, is_sql)
+    user_df = read_data('user', user_features, 'id', user_id, is_sql)
     user_df.rename(columns={'id': 'user_id', 'phone': 'phone_user'}, inplace=True)
     all_data_df = pd.merge(all_data_df, user_df, on='user_id', how='left')
 
     # 读取并处理表 bargain_help
-    bargain_help_df = read_mlfile('bargain_help', bargain_help_features, 'user_id', user_id, is_sql)
+    bargain_help_df = read_data('bargain_help', bargain_help_features, 'user_id', user_id, is_sql)
     all_data_df['have_bargain_help'] = np.where(all_data_df['user_id'].isin(bargain_help_df['user_id'].values), 1, 0)
 
     # 读取并处理表 face_id
-    face_id_df = read_mlfile('face_id', face_id_features, 'user_id', user_id, is_sql)
+    face_id_df = read_data('face_id', face_id_features, 'user_id', user_id, is_sql)
     face_id_df.rename(columns={'status': 'face_check'}, inplace=True)
     all_data_df = pd.merge(all_data_df, face_id_df, on='user_id', how='left')
 
     # 读取并处理表 face_id_liveness
-    face_id_liveness_df = read_mlfile('face_id_liveness', ['order_id', 'status'], 'order_id', order_id, is_sql)
+    face_id_liveness_df = read_data('face_id_liveness', ['order_id', 'status'], 'order_id', order_id, is_sql)
     face_id_liveness_df.rename(columns={'status': 'face_live_check'}, inplace=True)
     all_data_df = pd.merge(all_data_df, face_id_liveness_df, on='order_id', how='left')
 
     # 读取并处理表 user_credit
-    user_credit_df = read_mlfile('user_credit', user_credit_features, 'user_id', user_id, is_sql)
+    user_credit_df = read_data('user_credit', user_credit_features, 'user_id', user_id, is_sql)
     all_data_df = pd.merge(all_data_df, user_credit_df, on='user_id', how='left')
 
     # 读取并处理表 user_device
-    user_device_df = read_mlfile('user_device', user_device_features, 'user_id', user_id, is_sql)
+    user_device_df = read_data('user_device', user_device_features, 'user_id', user_id, is_sql)
     user_device_df.rename(columns={'device_type': 'device_type_os'}, inplace=True)
     all_data_df = pd.merge(all_data_df, user_device_df, on='user_id', how='left')
 
     # 读取并处理表 order_express
     # 未处理特征：'country', 'provice', 'city', 'regoin', 'receive_address', 'live_address'
-    order_express_df = read_mlfile('order_express', order_express_features, 'order_id', order_id, is_sql)
+    order_express_df = read_data('order_express', order_express_features, 'order_id', order_id, is_sql)
     order_express_df.drop_duplicates(subset='order_id', inplace=True)
     all_data_df = pd.merge(all_data_df, order_express_df, on='order_id', how='left')
 
     # 读取并处理表 order_detail
-    order_detail_df = read_mlfile('order_detail', order_detail_features, 'order_id', order_id, is_sql)
+    order_detail_df = read_data('order_detail', order_detail_features, 'order_id', order_id, is_sql)
     all_data_df = pd.merge(all_data_df, order_detail_df, on='order_id', how='left')
 
     # 读取并处理表 order_goods
-    order_goods_df = read_mlfile('order_goods', order_goods_features, 'order_id', order_id,
+    order_goods_df = read_data('order_goods', order_goods_features, 'order_id', order_id,
                                  is_sql)
     order_goods_df.drop_duplicates(subset='order_id', inplace=True)
     all_data_df = pd.merge(all_data_df, order_goods_df, on='order_id', how='left')
@@ -439,14 +458,14 @@ def get_order_data(order_id=88668, is_sql=False):
 
         return len(set(name_list))
 
-    order_phone_book_df = read_mlfile('order_phone_book', ['order_id', 'phone_book'], 'order_id', order_id, is_sql)
+    order_phone_book_df = read_data('order_phone_book', ['order_id', 'phone_book'], 'order_id', order_id, is_sql)
     order_phone_book_df['phone_book'] = order_phone_book_df['phone_book'].map(count_name_nums)
 
     all_data_df = pd.merge(all_data_df, order_phone_book_df, on='order_id', how='left')
     all_data_df['phone_book'].fillna(value=0, inplace=True)
 
     # 读取并处理表 risk_order
-    risk_order_df = read_mlfile('risk_order', risk_order_features, 'order_id', order_id,
+    risk_order_df = read_data('risk_order', risk_order_features, 'order_id', order_id,
                                 is_sql)
     risk_order_df['result'] = risk_order_df['result'].str.lower()
     for risk_type in ['tongdun', 'mibao', 'guanzhu', 'bai_qi_shi']:
@@ -458,26 +477,26 @@ def get_order_data(order_id=88668, is_sql=False):
             inplace=True)
         all_data_df = pd.merge(all_data_df, tmp_df, on='order_id', how='left')
     # 读取并处理表 tongdun
-    tongdun_df = read_mlfile('tongdun', tongdun_features, 'order_number', order_number,
+    tongdun_df = read_data('tongdun', tongdun_features, 'order_number', order_number,
                              is_sql)
     all_data_df = pd.merge(all_data_df, tongdun_df, on='order_number', how='left')
 
     # 读取并处理表 user_third_party_account
-    user_third_party_account_df = read_mlfile('user_third_party_account', ['user_id'], 'user_id', user_id, is_sql)
+    user_third_party_account_df = read_data('user_third_party_account', ['user_id'], 'user_id', user_id, is_sql)
     counts_df = pd.DataFrame({'account_num': user_third_party_account_df['user_id'].value_counts()})
     counts_df['user_id'] = counts_df.index
     all_data_df = pd.merge(all_data_df, counts_df, on='user_id', how='left')
 
     # 读取并处理表 user_zhima_cert
-    df = read_mlfile('user_zhima_cert', user_zhima_cert_features, 'user_id', user_id, is_sql)
+    df = read_data('user_zhima_cert', user_zhima_cert_features, 'user_id', user_id, is_sql)
     all_data_df['zhima_cert_result'] = np.where(all_data_df['user_id'].isin(df['user_id'].tolist()), 1, 0)
 
     # 读取并处理表 jimi_order_check_result
-    df = read_mlfile('jimi_order_check_result', jimi_order_check_result_features, 'order_id', order_id, is_sql)
+    df = read_data('jimi_order_check_result', jimi_order_check_result_features, 'order_id', order_id, is_sql)
     all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
 
     # 读取并处理表 credit_audit_order
-    df = read_mlfile('credit_audit_order', credit_audit_order_features, 'order_id', order_id, is_sql)
+    df = read_data('credit_audit_order', credit_audit_order_features, 'order_id', order_id, is_sql)
     df.rename(columns={'state': 'state_cao', 'remark': 'remark_cao'}, inplace=True)
     all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
 
