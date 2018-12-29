@@ -81,7 +81,7 @@ order_features = ['id', 'create_time', 'deleted', 'lease_start_time', 'lease_exp
                   'credit_check_result', 'user_remark', 'original_daily_rent',
                   'merchant_store_id', 'deposit', 'deposit_type',
                   'hit_merchant_white_list', 'pick_up_merchant_store_id',
-                  'receive_merchant_store_id', 'api_version', 'fingerprint',
+                  'receive_merchant_store_id', 'fingerprint',
                   'finished_state', 'hit_goods_white_list', 'buyout_coefficient',
                   'merchant_credit_check_result', 'disposable_payment_limit_day',
                   'instalment_pay_enable', 'select_disposable_payment_enabled',
@@ -340,16 +340,19 @@ def save_data(df, filename):
     df.to_csv(os.path.join(data_path, filename), index=False)
 
 
-def read_data(filename, features, field='order_id', field_value=None):
+def read_data(table_name, features, field='order_id', field_value=None):
     starttime = time.clock()
     if field_value == None:
-        sql = "SELECT {} FROM `{}` ;".format(",".join(features), filename, field)
+        if table_name in ['user_device', 'order_express', 'order_detail', 'order_phone_book', 'user_third_party_account']:
+            sql = "SELECT {} FROM `{}` s LIMIT 1;".format(",".join(features), table_name, field)
+        else:
+            sql = "SELECT {} FROM `{}` s WHERE s.deleted != 1 LIMIT 1;".format(",".join(features), table_name, field)
     else:
-        sql = "SELECT {} FROM `{}` o WHERE o.{} = {};".format(",".join(features), filename, field, field_value)
+        sql = "SELECT {} FROM `{}` o WHERE o.{} = {};".format(",".join(features), table_name, field, field_value)
 
     print(sql)
     df = read_sql_query(sql)
-    print(filename, time.clock() - starttime)
+    print(table_name, time.clock() - starttime)
     return df
 
 
@@ -357,7 +360,7 @@ def get_all_data_mibao():
     df = get_order_data()
     save_data(df, "mibao.csv")
     # 保存注释内容
-    sql = '''SELECT table_name, column_name, DATA_TYPE, COLUMN_COMMENT FROM information_schema.columns; '''
+    sql = '''SELECT table_name, column_name, DATA_TYPE, COLUMN_COMMENT FROM information_schema.columns WHERE TABLE_SCHEMA = 'mibao_rds'; '''
     df = read_sql_query(sql)
     save_data(df, "mibao_comment.csv")
 
@@ -502,16 +505,23 @@ def get_order_data(order_id=None):
     df['target_state'] = None
     # 未处理订单
     # 机审拒绝
+    # 机审通过但用户取消
     # 人审拒绝
     # 机审或人审拒绝后， 押金订单
-    # 人审通过
-    df.loc[df['state_cao'].isin(['manual_check_fail']), 'target'] = 0
-    df.loc[df['state_cao'].isin(['manual_check_success']), 'target'] = 1
-    df.loc[df['state'].isin(pass_state_values), 'target'] = 1
-    df.loc[df['state'].isin(failure_state_values), 'target'] = 0
-    df = df[df['target'].notnull()]
-    df['target'].value_counts()
-    df['state'].value_counts()
+    # 人审通过但用户取消
+    # 正常订单
+    # 逾期订单
 
-    save_data(all_data_df, 'mibao.csv')
+    # df.loc[df['state_cao'].isin(['manual_check_fail']), 'target'] = 0
+    # df.loc[df['state_cao'].isin(['manual_check_success']), 'target'] = 1
+    # df.loc[df['state'].isin(pass_state_values), 'target'] = 1
+    # df.loc[df['state'].isin(failure_state_values), 'target'] = 0
+    # df = df[df['target'].notnull()]
+    # df['target'].value_counts()
+    # df['state'].value_counts()
+
+    # save_data(all_data_df, 'mibao.csv')
     return all_data_df
+
+
+
