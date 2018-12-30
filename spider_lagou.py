@@ -6,7 +6,7 @@ import json
 import pandas as pd
 import random
 import os
-from mibao.sql import sql_engine_connect
+from sql.sql import sql_connect
 
 
 def get_uuid():
@@ -19,9 +19,11 @@ class SpiderLagou(object):
             workdir = os.path.dirname(os.path.realpath(__file__))
         except:
             workdir = os.getcwd()
-            workdir = os.path.join(workdir, "mibao")
         self.workdir = workdir
-        self.conn = sql_engine_connect()
+
+        sql_file = os.path.join(workdir, 'sql', 'sql_mibao_spider.json')
+        ssh_pkey = os.path.join(workdir, 'sql', 'sql_pkey')
+        self.conn = sql_connect('enterprise', sql_file, ssh_pkey)
         self.create_table()
 
     # 创建表格的函数，表格名称按照时间和关键词命名

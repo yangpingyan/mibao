@@ -12,7 +12,8 @@ import pandas as pd
 import time
 import re, json, os, sys
 from fontTools.ttLib import TTFont
-from mibao.sql import sql_engine_connect
+
+from sql.sql import sql_connect
 
 
 class SpiderTianyangcha(object):
@@ -21,11 +22,14 @@ class SpiderTianyangcha(object):
             workdir = os.path.dirname(os.path.realpath(__file__))
         except:
             workdir = os.getcwd()
-            workdir = os.path.join(workdir, "mibao")
         self.workdir = workdir
-        self.conn = sql_engine_connect()
+
+        sql_file = os.path.join(workdir, 'sql', 'sql_mibao_spider.json')
+        ssh_pkey = os.path.join(workdir, 'sql', 'sql_pkey')
+        self.conn = sql_connect('enterprise', sql_file, ssh_pkey)
         self.create_table()
-        with open(os.path.join(workdir, "tianyancha_account.json"), 'r') as f:
+
+        with open(os.path.join(workdir, 'others', "tianyancha_account.json"), 'r') as f:
             tianyancha_account = json.load(f)
         self.username = tianyancha_account['username']
         self.password = tianyancha_account['password']
@@ -42,7 +46,7 @@ class SpiderTianyangcha(object):
         options = webdriver.ChromeOptions()
         prefs = {'profile.default_content_settings.popups': 0, 'download.default_directory': self.font_path}
         options.add_experimental_option('prefs', prefs)
-        self.browser = webdriver.Chrome(executable_path=os.path.join(self.workdir, 'chromedriver.exe'), chrome_options=options)
+        self.browser = webdriver.Chrome(executable_path=os.path.join(self.workdir, 'others', 'chromedriver.exe'), chrome_options=options)
         self.create_woff_map()
 
     # 创建表格的函数，表格名称按照时间和关键词命名
