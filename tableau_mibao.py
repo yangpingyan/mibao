@@ -8,6 +8,7 @@ import os, json
 from sql.sql import sql_connect
 import numpy as np
 import time
+import re
 
 # 全局变量定义
 is_sql = False
@@ -111,7 +112,7 @@ user_login_record_features = []
 user_longitude_latitude_feature = []
 user_wx_account_features = []
 xiaobai_features = []
-_
+
 # order中的state 分类
 pass_state_values = ['pending_receive_goods', 'running', 'lease_finished', 'pending_send_goods',
                      'merchant_not_yet_send_canceled', 'buyout_finished', 'pending_user_compensate', 'repairing',
