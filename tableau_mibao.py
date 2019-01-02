@@ -56,13 +56,12 @@ sql_tables = ['face_id', 'face_id_liveness', 'jimi_order_check_result', 'order',
               'user_device', 'user_third_party_account', 'user_zhima_cert', 'credit_audit_order', 'risk_white_list']
 
 # 数据库表中的相关字段
-order_features = ['id', 'create_time', 'lease_start_time', 'lease_expire_time', 'finished_time',
-                  'canceled_time', 'received_time', 'delivery_time', 'last_pay_time', 'order_number', 'merchant_id',
-                  'merchant_name', 'user_id', 'user_name', 'goods_name',
-                  'state', 'cost', 'discount',
-                  'installment', 'next_pay_time', 'rem_pay_num',
-                  'pay_num', 'added_service',
-                  'first_pay', 'first_pay_time', 'full', 'billing_method',
+order_features = ['id', 'create_time', 'lease_start_time', 'finished_time', 'canceled_time', 'received_time',
+                  'delivery_time', 'order_number', 'merchant_id', 'merchant_name', 'user_id', 'user_name', 'goods_name',
+                  'state', 'cost', 'discount', 'installment', 'rem_pay_num', 'pay_num', 'added_service', 'first_pay',
+                  'first_pay_time', 'full',
+
+                  'billing_method',
                   'liquidated_damages_percent', 'channel', 'pay_type',
                   'user_receive_time', 'reminded', 'bounds_example_id',
                   'bounds_example_name', 'bounds_example_no', 'goods_type',
@@ -71,22 +70,22 @@ order_features = ['id', 'create_time', 'lease_start_time', 'lease_expire_time', 
                   'credit_check_author', 'lease_term', 'commented',
                   'daily_rent', 'accident_insurance',
                   'description', 'type', 'freeze_money', 'sign_state',
-                  'handheld_photo', 'ip', 'pid',
+                  'ip',
                   'releted', 'service_enable', 'exchange_enable',
                   'relet_appliable', 'order_type', 'delivery_way', 'buyouted',
                   'buyout_appliable', 'mac_address',
-                  'device_type', 'hand_id_card', 'id_card_pros',
-                  'id_card_cons', 'stages', 'source', 'distance',
+                  'device_type',
+                  'stages', 'source', 'distance',
                   'disposable_payment_discount', 'disposable_payment_enabled',
                   'custom_lease', 'activity_id', 'lease_num',
                   'credit_check_result', 'user_remark', 'original_daily_rent',
                   'merchant_store_id', 'deposit', 'deposit_type',
                   'hit_merchant_white_list', 'pick_up_merchant_store_id',
-                  'receive_merchant_store_id', 'fingerprint',
-                  'finished_state', 'hit_goods_white_list', 'buyout_coefficient',
+                  'fingerprint',
+                  'hit_goods_white_list', 'buyout_coefficient',
                   'merchant_credit_check_result', 'disposable_payment_limit_day',
                   'instalment_pay_enable', 'select_disposable_payment_enabled',
-                  'settlement', 'settlement_transaction_no']
+                  'settlement']
 
 user_features = ['id', 'create_time', 'head_image_url', 'recommend_code', 'regist_channel_type', 'share_callback',
                  'tag', 'phone']
@@ -384,8 +383,6 @@ def bit_process(df: pd.DataFrame):
     return df
 
 
-
-
 def get_order_data(order_id=None):
     # 变量初始化
     order_id = None
@@ -503,8 +500,6 @@ def get_order_data(order_id=None):
     for feature in features:
         all_data_df[feature] = bit_process(all_data_df[feature])
 
-    # 去除软删除标志的数据
-    all_data_df = all_data_df[all_data_df['deleted'] != 1]
     # 去除测试数据和内部员工数据
     all_data_df = all_data_df[all_data_df['cancel_reason'].str.contains('测试') != True]
     all_data_df = all_data_df[all_data_df['check_remark'].str.contains('测试') != True]
@@ -530,9 +525,11 @@ def get_order_data(order_id=None):
 
     return all_data_df
 
+
 # In[]
 def feature_analyse(df, feature):
-    feature = 'lease_start_time'
+    print(df[df[feature].notnull()])
+
     print("数据类型:", df[feature].dtype)
     print("空值率： {:.2f}%".format(100 * df[feature].isnull().sum() / len(df[feature])))
     print("value_counts: \r", df[feature].value_counts())
@@ -540,25 +537,13 @@ def feature_analyse(df, feature):
     # df[feature].unique()
     # df[df[feature].isnull()].sort_values(by='target').shape
 
-
     print("数据的趋势、集中趋势、紧密程度")
     print("数据分布、密度")
     print("数据相关性、周期性")
     print("统计作图，更直观的发现数据的规律：折线图、直方图、饼形图、箱型图、对数图形、误差条形图")
 
 
-df = pd.read_csv(os.path.join(data_path, "mibao.csv"), encoding='utf-8', engine='python')
+# df = pd.read_csv(os.path.join(data_path, "mibao.csv"), encoding='utf-8', engine='python')
 
-df.rename(columns={'create_time_x': 'create_time'}, inplace=True)
-feature_analyse(df, "lease_start_time")
-'''
-feature = 'create_time'
-df[feature].value_counts()
-feature_analyse(df, feature, bins=50)
-df[feature].dtype
-df[df[feature].isnull()].sort_values(by='target').shape
-df[feature].unique()
-df.columns.values
-missing_values_table(df)
-df.shape
-'''
+feature_analyse(df, "finished_state")
+# missing_values_table(df)

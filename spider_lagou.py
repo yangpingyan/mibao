@@ -123,6 +123,7 @@ class SpiderLagou(object):
             #     print(data)
             #     self.insert_data(data)
             #     companys_list.append(position['companyFullName'])
+        response.close()
         return df
 
     def main(self, city, keyword):
@@ -131,21 +132,26 @@ class SpiderLagou(object):
         start_page = 1
         for n in range(start_page, start_page + 1000):
             print("starting to crawl page ", n)
-            df = self.get_lagou(n, city, keyword)
-
-            if len(df) == 0:
-                break
-            df.drop_duplicates(subset='company_name', inplace=True)
-            df = df[df['company_name'].isin(companys_list) == False]
-            if len(df) > 0:
-                self.insert_data_df(df)
-                none_added_count = 0
-            else:
-                none_added_count += 1
-                if none_added_count > 3:
+            try:
+                df = self.get_lagou(n, city, keyword)
+                if len(df) == 0:
                     break
-            companys_list.extend(df['company_name'].tolist())
-            print(city, len(df), " companys added")
+                df.drop_duplicates(subset='company_name', inplace=True)
+                df = df[df['company_name'].isin(companys_list) == False]
+                if len(df) > 0:
+                    self.insert_data_df(df)
+                    companys_list.extend(df['company_name'].tolist())
+                    none_added_count = 0
+                else:
+                    none_added_count += 1
+
+                print(city, len(df), " companys added")
+            except:
+                none_added_count += 1
+
+            if none_added_count > 3:
+                break
+
             time.sleep(round(random.uniform(4, 6), 2))
         self.close()
 
