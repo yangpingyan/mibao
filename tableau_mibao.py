@@ -9,6 +9,7 @@ from sql.sql import sql_connect
 import numpy as np
 import time
 import re
+from ds_utils import *
 
 # 全局变量定义
 is_sql = False
@@ -55,7 +56,7 @@ sql_tables = ['face_id', 'face_id_liveness', 'jimi_order_check_result', 'order',
               'user_device', 'user_third_party_account', 'user_zhima_cert', 'credit_audit_order', 'risk_white_list']
 
 # 数据库表中的相关字段
-order_features = ['id', 'create_time', 'deleted', 'lease_start_time', 'lease_expire_time', 'finished_time',
+order_features = ['id', 'create_time', 'lease_start_time', 'lease_expire_time', 'finished_time',
                   'canceled_time', 'received_time', 'delivery_time', 'last_pay_time', 'order_number', 'merchant_id',
                   'merchant_name', 'user_id', 'user_name', 'goods_name',
                   'state', 'cost', 'discount',
@@ -87,23 +88,21 @@ order_features = ['id', 'create_time', 'deleted', 'lease_start_time', 'lease_exp
                   'instalment_pay_enable', 'select_disposable_payment_enabled',
                   'settlement', 'settlement_transaction_no']
 
-user_features = ['id','create_time', 'head_image_url', 'recommend_code', 'regist_channel_type', 'share_callback', 'tag', 'phone']
+user_features = ['id', 'create_time', 'head_image_url', 'recommend_code', 'regist_channel_type', 'share_callback',
+                 'tag', 'phone']
 face_id_features = ['user_id', 'status', 'liveness_status']
-face_id_liveness_features = ['order_id', 'status']
 user_credit_features = ['user_id', 'cert_no', 'workplace', 'idcard_pros', 'occupational_identity_type',
                         'company_phone', 'cert_no_expiry_date', 'cert_no_json', ]
 user_device_features = ['user_id', 'device_type', 'regist_device_info', 'regist_useragent', 'ingress_type']
 order_express_features = ['order_id', 'zmxy_score', 'card_id', 'phone', 'company']
 order_detail_features = ['order_id', 'order_detail']
 order_goods_features = ['order_id', 'price', 'category', 'old_level']
-order_phone_book_features = ['order_id', 'phone_book']
 risk_order_features = ['order_id', 'type', 'result', 'detail_json', 'remark']
 tongdun_features = ['order_number', 'final_score', 'final_decision']
-user_third_party_account_features = ['user_id', 'create_time']
 user_zhima_cert_features = ['user_id', 'status']
-risk_white_list_features = ['user_id']
 jimi_order_check_result_features = ['order_id', 'check_remark']
-credit_audit_order_features = ['order_id','create_time', 'admin_name', 'state', 'remark', 'manual_check_start_time', 'manual_check_end_time', 'order_cancle_time']
+credit_audit_order_features = ['order_id', 'create_time', 'admin_name', 'state', 'remark', 'manual_check_start_time',
+                               'manual_check_end_time', 'order_cancle_time']
 order_xinyongzu_features = []
 user_bonus_features = []
 user_login_log_features = []
@@ -111,6 +110,10 @@ user_login_record_features = []
 user_longitude_latitude_feature = []
 user_wx_account_features = []
 xiaobai_features = []
+user_third_party_account_features = ['user_id', 'create_time']
+face_id_liveness_features = ['order_id', 'status']
+order_phone_book_features = ['order_id', 'phone_book']
+risk_white_list_features = ['user_id']
 
 # order中的state 分类
 pass_state_values = ['pending_receive_goods', 'running', 'lease_finished', 'pending_send_goods',
@@ -349,10 +352,11 @@ def save_data(df, filename):
 def read_data(table_name, features, field='order_id', field_value=None):
     starttime = time.clock()
     if field_value == None:
-        if table_name in ['user_device', 'order_express', 'order_detail', 'order_phone_book', 'user_third_party_account']:
-            sql = "SELECT {} FROM `{}` s LIMIT 10000;".format(",".join(features), table_name, field)
+        if table_name in ['user_device', 'order_express', 'order_detail', 'order_phone_book',
+                          'user_third_party_account']:
+            sql = "SELECT {} FROM `{}` s ;".format(",".join(features), table_name, field)
         else:
-            sql = "SELECT {} FROM `{}` s WHERE s.deleted != 1 LIMIT 2000;".format(",".join(features), table_name, field)
+            sql = "SELECT {} FROM `{}` s WHERE s.deleted != 1 ;".format(",".join(features), table_name, field)
     else:
         sql = "SELECT {} FROM `{}` o WHERE o.{} = {};".format(",".join(features), table_name, field, field_value)
 
@@ -372,6 +376,7 @@ def get_all_data_mibao():
 
     return df
 
+
 def bit_process(df: pd.DataFrame):
     df = df.astype(str)
     df.fillna('0', inplace=True)
@@ -379,7 +384,7 @@ def bit_process(df: pd.DataFrame):
     return df
 
 
-# In[]
+
 
 def get_order_data(order_id=None):
     # 变量初始化
@@ -399,14 +404,13 @@ def get_order_data(order_id=None):
     # 若state字段有新的状态产生， 抛出异常
     state_values_newest = all_data_df['state'].unique().tolist()
     state_values = pass_state_values + failure_state_values + unknow_state_values
-    print(list(set(state_values_newest).difference(set(state_values))))
+    print("state产生新字段： ", list(set(state_values_newest).difference(set(state_values))))
     assert (len(list(set(state_values_newest).difference(set(state_values)))) == 0)
 
     # 读取并处理表 user
     user_df = read_data('user', user_features, 'id', user_id)
-    user_df.rename(columns={'id': 'user_id', 'phone': 'phone_user'}, inplace=True)
+    user_df.rename(columns={'id': 'user_id', 'phone': 'phone_user', 'create_time': 'create_time_user'}, inplace=True)
     all_data_df = pd.merge(all_data_df, user_df, on='user_id', how='left')
-
 
     # 读取并处理表 face_id
     face_id_df = read_data('face_id', face_id_features, 'user_id', user_id)
@@ -490,7 +494,8 @@ def get_order_data(order_id=None):
 
     # 读取并处理表 credit_audit_order
     df = read_data('credit_audit_order', credit_audit_order_features, 'order_id', order_id)
-    df.rename(columns={'state': 'state_cao', 'remark': 'remark_cao'}, inplace=True)
+    df.rename(columns={'state': 'state_cao', 'remark': 'remark_cao', 'create_time': 'create_time_credit_audit'},
+              inplace=True)
     all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
 
     # 特殊字符串的列预先处理下：
@@ -503,7 +508,6 @@ def get_order_data(order_id=None):
     # 去除测试数据和内部员工数据
     all_data_df = all_data_df[all_data_df['cancel_reason'].str.contains('测试') != True]
     all_data_df = all_data_df[all_data_df['check_remark'].str.contains('测试') != True]
-
 
     # 标注人工审核结果于target_state字段
     df['target_state'] = None
@@ -524,8 +528,36 @@ def get_order_data(order_id=None):
     # df['target'].value_counts()
     # df['state'].value_counts()
 
-    # save_data(all_data_df, 'mibao.csv')
     return all_data_df
 
+# In[]
+def feature_analyse(df, feature):
+    feature = 'deleted'
+    print("数据类型: ", df[feature].dtype)
+    df[feature].value_counts()
+    df[df[feature].isnull()].sort_values(by='target').shape
+    df[feature].unique()
+    missing_values_table(df)
+    df.shape
+
+    print("数据的趋势、集中趋势、紧密程度")
+    print("数据分布、密度")
+    print("数据相关性、周期性")
+    print("统计作图，更直观的发现数据的规律：折线图、直方图、饼形图、箱型图、对数图形、误差条形图")
 
 
+df = pd.read_csv(os.path.join(data_path, "mibao.csv"), encoding='utf-8', engine='python')
+
+df.rename(columns={'create_time_x': 'create_time'}, inplace=True)
+df.columns.tolist()
+'''
+feature = 'create_time'
+df[feature].value_counts()
+feature_analyse(df, feature, bins=50)
+df[feature].dtype
+df[df[feature].isnull()].sort_values(by='target').shape
+df[feature].unique()
+df.columns.values
+missing_values_table(df)
+df.shape
+'''
