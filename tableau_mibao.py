@@ -58,7 +58,6 @@ sql_tables = ['face_id', 'face_id_liveness', 'jimi_order_check_result', 'order',
 order_features = ['id', 'create_time', 'deleted', 'lease_start_time', 'lease_expire_time', 'finished_time',
                   'canceled_time', 'received_time', 'delivery_time', 'last_pay_time', 'order_number', 'merchant_id',
                   'merchant_name', 'user_id', 'user_name', 'goods_name',
-
                   'state', 'cost', 'discount',
                   'installment', 'next_pay_time', 'rem_pay_num',
                   'pay_num', 'added_service',
@@ -351,7 +350,7 @@ def read_data(table_name, features, field='order_id', field_value=None):
     starttime = time.clock()
     if field_value == None:
         if table_name in ['user_device', 'order_express', 'order_detail', 'order_phone_book', 'user_third_party_account']:
-            sql = "SELECT {} FROM `{}` s LIMIT 2000;".format(",".join(features), table_name, field)
+            sql = "SELECT {} FROM `{}` s LIMIT 10000;".format(",".join(features), table_name, field)
         else:
             sql = "SELECT {} FROM `{}` s WHERE s.deleted != 1 LIMIT 2000;".format(",".join(features), table_name, field)
     else:
@@ -384,6 +383,7 @@ def bit_process(df: pd.DataFrame):
 
 def get_order_data(order_id=None):
     # 变量初始化
+    order_id = None
     user_id = None
     order_number = None
     print("读取order表")

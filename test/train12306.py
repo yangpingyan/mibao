@@ -44,7 +44,7 @@ seat_type_dict = {
 username = 'yangpingyan'
 passwd = ''
 # 始发站
-starts_city = city_code_dict['杭州']
+starts_city = city_code_dict['杭州东']
 ends_city = city_code_dict['鳌江']
 
 # 发车时间
@@ -56,6 +56,7 @@ ends_city = city_code_dict['鳌江']
 ##### 12:00--18:00->12:00--18:00
 ##### 18:00--24:00->18:00--24:00
 train_time = '00:00--24:00'
+order_number_list = [4]
 
 # 网址
 ticket_url = 'https://kyfw.12306.cn/otn/leftTicket/init'
@@ -79,12 +80,9 @@ browser.fill("loginUserDTO.user_name", username)
 # browser.fill("userDTO.password", passwd)
 print(u"等待验证码，自行输入...")
 # 验证码需要自行输入，程序自旋等待，直到验证码通过，点击登录
-while True:
-    if browser.url != logined_url:
-        time.sleep(1)
-    else:
-        break
-browser.visit(ticket_url)
+while browser.url != logined_url:
+    time.sleep(1)
+
 
 # In[]
 
@@ -93,7 +91,6 @@ browser.visit(ticket_url)
 # 0->从上至下点击
 # 1->第一个车次
 # 2->第二个车次
-order_number_list = [10]
 train_date = datetime.now() + timedelta(days=29)
 train_date = train_date.strftime("%Y-%m-%d")
 print(train_date)
@@ -107,7 +104,7 @@ browser.reload()
 
 
 # 11：30前刷新， 剩余10秒退出
-rob_time = datetime.now().replace(hour=11, minute=29, second=53)
+rob_time = datetime.now().replace(hour=11, minute=29, second=44)
 while True:
     now = datetime.now()
     print("sleeping ", now)
@@ -115,7 +112,7 @@ while True:
         print("start to rob ticket!!!")
         break
     else:
-        time.sleep(round(random.uniform(3, 5), 2))
+        time.sleep(round(random.uniform(12, 14), 2))
         browser.find_by_text(u"查询").click()
 
 
@@ -192,10 +189,6 @@ time.sleep(0.5)
 print(u"确认选座...")
 count = 0
 while True:
-    count += 1
-    if count > 10:
-        if len(browser.find_by_text("余票")) == 0:
-            break
     try:
         browser.find_by_id('qr_submit_id').click()
         # browser.find_by_id("back_edit_id").click()
