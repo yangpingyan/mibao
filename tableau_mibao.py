@@ -532,13 +532,14 @@ def get_order_data(order_id=None):
 
 # In[]
 def feature_analyse(df, feature):
-    feature = 'deleted'
-    print("数据类型: ", df[feature].dtype)
-    df[feature].value_counts()
-    df[df[feature].isnull()].sort_values(by='target').shape
-    df[feature].unique()
-    missing_values_table(df)
-    df.shape
+    feature = 'lease_start_time'
+    print("数据类型:", df[feature].dtype)
+    print("空值率： {:.2f}%".format(100 * df[feature].isnull().sum() / len(df[feature])))
+    print("value_counts: \r", df[feature].value_counts())
+
+    # df[feature].unique()
+    # df[df[feature].isnull()].sort_values(by='target').shape
+
 
     print("数据的趋势、集中趋势、紧密程度")
     print("数据分布、密度")
@@ -549,7 +550,7 @@ def feature_analyse(df, feature):
 df = pd.read_csv(os.path.join(data_path, "mibao.csv"), encoding='utf-8', engine='python')
 
 df.rename(columns={'create_time_x': 'create_time'}, inplace=True)
-df.columns.tolist()
+feature_analyse(df, "lease_start_time")
 '''
 feature = 'create_time'
 df[feature].value_counts()
