@@ -280,12 +280,13 @@ class Spider51job(object):
                     except Exception as e:
                         # print('无营业执照对应的公司名称', e)
                         pass
+                    req_company.close()
                 except:
                     pass
 
                 self.insert_data(data)
                 self.all_companys.append(data["company_name"])
-
+        req.close()
         print(self.city, len(self.all_companys)-self.prevous_company_count, "companys added")
         if len(self.all_companys) == self.prevous_company_count:
             self.none_count += 1

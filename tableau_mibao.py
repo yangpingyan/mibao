@@ -403,6 +403,7 @@ def process_data_tableau(df):
 
     df['baiqishi_score'] = df['bai_qi_shi_detail_json'].map(lambda x: get_baiqishi_score(x))
 
+    # detail_json 暂不处理
     df.drop(['tongdun_detail_json', 'bai_qi_shi_detail_json', 'guanzhu_detail_json', 'mibao_detail_json', 'cancel_reason', 'check_remark', 'mibao_remark'],
             axis=1, inplace=True, errors='ignore')
     return df
@@ -560,11 +561,9 @@ def feature_analyse(df, feature):
 
 df = pd.read_csv(os.path.join(data_path, "mibao.csv"), encoding='utf-8', engine='python')
 
-all_data_df = df.copy()
+df = process_data_tableau(df)
 
-feature_analyse(df, "mibao_remark")
-df[df['mibao_remark'].str.contains("机审审核通过", na=False)][['target_state', 'order_acquaintance', 'state_cao']]
-# missing_values_table(df)
+feature_analyse(df, "daily_rent")
 
 order_features = ['id', 'create_time', 'lease_start_time', 'finished_time', 'canceled_time', 'received_time',
                   'delivery_time', 'order_number', 'merchant_id', 'merchant_name', 'user_id', 'user_name', 'goods_name',
