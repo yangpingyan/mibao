@@ -44,8 +44,8 @@ seat_type_dict = {
 username = 'yangpingyan'
 passwd = ''
 # 始发站
-starts_city = city_code_dict['杭州东']
-ends_city = city_code_dict['鳌江']
+starts_city = city_code_dict['鳌江']
+ends_city = city_code_dict['杭州东']
 
 # 发车时间
 ### start_time：发车时间，可选参数，不指定请删除等号后的值，默认值“00:00--24:00”
@@ -56,7 +56,7 @@ ends_city = city_code_dict['鳌江']
 ##### 12:00--18:00->12:00--18:00
 ##### 18:00--24:00->18:00--24:00
 train_time = '00:00--24:00'
-order_number_list = [4]
+order_number_list = [15]
 
 # 网址
 ticket_url = 'https://kyfw.12306.cn/otn/leftTicket/init'

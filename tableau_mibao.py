@@ -11,6 +11,11 @@ import time
 import re
 from ds_utils import *
 
+# to make output display better
+pd.set_option('display.max_columns', 50)
+pd.set_option('display.max_rows', 70)
+pd.set_option('display.width', 1000)
+
 # 全局变量定义
 is_sql = False
 data_path = r'./data'
@@ -367,6 +372,7 @@ def read_data(table_name, features, field='order_id', field_value=None):
 
 def get_all_data_mibao():
     df = get_order_data()
+    df = process_data_tableau(df)
     save_data(df, "mibao.csv")
     # 保存注释内容
     sql = '''SELECT table_name, column_name, DATA_TYPE, COLUMN_COMMENT FROM information_schema.columns WHERE TABLE_SCHEMA = 'mibao_rds'; '''
@@ -374,6 +380,38 @@ def get_all_data_mibao():
     save_data(df, "mibao_comment.csv")
 
     return df
+
+
+def process_data_tableau(df):
+    # 订单最终壮状态标注
+    # 默认未未处理订单
+    df['target_state'] = np.NAN
+    df.loc[df['state'].isin(['system_credit_check_unpass_canceled']), 'target_state'] = '机审拒绝'
+    df.loc[df['state'].isin(['artificial_credit_check_unpass_canceled']), 'target_state'] = '人审拒绝'
+    df.loc[df['state'].isin(
+        ['merchant_credit_check_unpass_canceled', 'merchant_relet_check_unpass_canceled']), 'target_state'] = '商户审核拒绝'
+    normal_order = ['pending_receive_goods', 'running', 'pending_send_goods',
+                    'merchant_not_yet_send_canceled', 'pending_user_compensate', 'repairing',
+                    'express_rejection_canceled', 'pending_return', 'returning', 'return_goods',
+                    'returned_received',
+                    'pending_refund_deposit', 'exchange_goods', 'pending_relet_pay',
+                    'pending_compensate_check', 'pending_buyout_pay']
+    df.loc[df['state'].isin(normal_order), 'target_state'] = '运行中订单'
+
+    df.loc[df['state'].isin(['lease_finished', 'buyout_finished', 'relet_finished']), 'target_state'] = '完成'
+    df.loc[df['state'].isin(['return_overdue', 'running_overdue']), 'target_state'] = '逾期'
+
+
+    df.loc[df['state'].isin(['order_payment_overtime_canceled']), 'target_state'] = '付款超时'
+    df.loc[df['state'].isin(['pending_artificial_credit_check']), 'target_state'] = '未处理-等待人工处理'
+    df.loc[df['state'].isin(['pending_order_receiving', 'pending_jimi_credit_check', 'pending_relet_start', 'pending_relet_check']), 'target_state'] = '未处理'
+    df.loc[df['state'].isin(['user_canceled']), 'target_state'] = '用户取消'
+    df.loc[df['state'].isin(['pending_pay']), 'target_state'] = '等待支付'
+
+    feature_analyse(df, "target_state")
+
+    return df
+
 
 
 def bit_process(df: pd.DataFrame):
@@ -504,32 +542,16 @@ def get_order_data(order_id=None):
     all_data_df = all_data_df[all_data_df['cancel_reason'].str.contains('测试') != True]
     all_data_df = all_data_df[all_data_df['check_remark'].str.contains('测试') != True]
 
-    # 标注人工审核结果于target_state字段
-    df['target_state'] = None
-    # 未处理订单
-    # 机审拒绝
-    # 机审通过但用户取消
-    # 人审拒绝
-    # 机审或人审拒绝后， 押金订单
-    # 人审通过但用户取消
-    # 正常订单
-    # 逾期订单
-
-    # df.loc[df['state_cao'].isin(['manual_check_fail']), 'target'] = 0
-    # df.loc[df['state_cao'].isin(['manual_check_success']), 'target'] = 1
-    # df.loc[df['state'].isin(pass_state_values), 'target'] = 1
-    # df.loc[df['state'].isin(failure_state_values), 'target'] = 0
-    # df = df[df['target'].notnull()]
-    # df['target'].value_counts()
-    # df['state'].value_counts()
-
     return all_data_df
 
 
 # In[]
+comment_df = pd.read_csv(os.path.join(data_path, "mibao_comment.csv"), encoding='utf-8', engine='python')
+
+
 def feature_analyse(df, feature):
     print(df[df[feature].notnull()])
-
+    print(comment_df[comment_df['column_name'] == feature])
     print("数据类型:", df[feature].dtype)
     print("空值率： {:.2f}%".format(100 * df[feature].isnull().sum() / len(df[feature])))
     print("value_counts: \r", df[feature].value_counts())
@@ -543,7 +565,34 @@ def feature_analyse(df, feature):
     print("统计作图，更直观的发现数据的规律：折线图、直方图、饼形图、箱型图、对数图形、误差条形图")
 
 
-# df = pd.read_csv(os.path.join(data_path, "mibao.csv"), encoding='utf-8', engine='python')
+df = pd.read_csv(os.path.join(data_path, "mibao.csv"), encoding='utf-8', engine='python')
 
-feature_analyse(df, "finished_state")
+all_data_df = df.copy()
+feature_analyse(df, "target_state")
 # missing_values_table(df)
+
+order_features = ['id', 'create_time', 'lease_start_time', 'finished_time', 'canceled_time', 'received_time',
+                  'delivery_time', 'order_number', 'merchant_id', 'merchant_name', 'user_id', 'user_name', 'goods_name',
+                  'state', 'cost', 'discount', 'installment', 'rem_pay_num', 'pay_num', 'added_service', 'first_pay',
+                  'first_pay_time', 'full', 'billing_method', 'pay_type', 'user_receive_time', 'bounds_example_id',
+                  'bounds_example_name', 'goods_type', 'cancel_reason', 'cancel_mode', 'paid_amount',
+
+                  'credit_check_author', 'lease_term', 'commented',
+                  'daily_rent', 'accident_insurance',
+                  'description', 'type', 'freeze_money', 'sign_state',
+                  'ip',
+                  'releted', 'service_enable', 'exchange_enable',
+                  'relet_appliable', 'order_type', 'delivery_way', 'buyouted',
+                  'buyout_appliable', 'mac_address',
+                  'device_type',
+                  'stages', 'source', 'distance',
+                  'disposable_payment_discount', 'disposable_payment_enabled',
+                  'custom_lease', 'activity_id', 'lease_num',
+                  'credit_check_result', 'user_remark', 'original_daily_rent',
+                  'merchant_store_id', 'deposit', 'deposit_type',
+                  'hit_merchant_white_list', 'pick_up_merchant_store_id',
+                  'fingerprint',
+                  'hit_goods_white_list', 'buyout_coefficient',
+                  'merchant_credit_check_result', 'disposable_payment_limit_day',
+                  'instalment_pay_enable', 'select_disposable_payment_enabled',
+                  'settlement']
