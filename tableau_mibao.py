@@ -61,17 +61,13 @@ sql_tables = ['face_id', 'face_id_liveness', 'jimi_order_check_result', 'order',
               'user_device', 'user_third_party_account', 'user_zhima_cert', 'credit_audit_order', 'risk_white_list']
 
 # 数据库表中的相关字段
+
 order_features = ['id', 'create_time', 'lease_start_time', 'finished_time', 'canceled_time', 'received_time',
                   'delivery_time', 'order_number', 'merchant_id', 'merchant_name', 'user_id', 'user_name', 'goods_name',
                   'state', 'cost', 'discount', 'installment', 'rem_pay_num', 'pay_num', 'added_service', 'first_pay',
-                  'first_pay_time', 'full',
+                  'first_pay_time', 'full', 'billing_method', 'pay_type', 'user_receive_time', 'bounds_example_id',
+                  'bounds_example_name', 'goods_type', 'cancel_reason', 'cancel_mode', 'paid_amount',
 
-                  'billing_method',
-                  'liquidated_damages_percent', 'channel', 'pay_type',
-                  'user_receive_time', 'reminded', 'bounds_example_id',
-                  'bounds_example_name', 'bounds_example_no', 'goods_type',
-                  'cash_pledge', 'cancel_reason',
-                  'cancel_mode', 'clearance_time', 'paid_amount',
                   'credit_check_author', 'lease_term', 'commented',
                   'daily_rent', 'accident_insurance',
                   'description', 'type', 'freeze_money', 'sign_state',
@@ -290,16 +286,6 @@ def process_data_mibao(df):
     df['age'] = df['year'] - df['cert_no'].str.slice(6, 10).astype(int)
     df['sex'] = df['cert_no'].str.slice(-2, -1).astype(int) % 2
 
-    def get_baiqishi_score(x):
-        ret = 0
-        if isinstance(x, type('str')):
-            ret_list = re.findall(r'final\w+core.:[\'\"]?([\d]+)', x)
-            ret = int(ret_list[0]) if len(ret_list) > 0 else 0
-
-        return ret
-
-    df['baiqishi_score'] = df['bai_qi_shi_detail_json'].map(lambda x: get_baiqishi_score(x))
-
     #
     # # 处理mibao_detail_json
     # df['tdTotalScore'] = 0
@@ -327,19 +313,7 @@ def process_data_mibao(df):
             inplace=True, errors='ignore')
     # 与其他特征关联度过高的特征
     df.drop(['lease_num', 'installment'], axis=1, inplace=True, errors='ignore')
-    '''
-    'tdTotalScore','zu_lin_ren_shen_fen_zheng_yan_zheng','zu_lin_ren_xing_wei','shou_ji_hao_yan_zheng','fan_qi_za',
 
-    feature = 'fan_qi_za'
-    df[feature].value_counts()
-    feature_analyse(df, feature, bins=50)
-    df[feature].dtype
-    df[df[feature].isnull()].sort_values(by='target').shape
-    df[feature].unique()
-    df.columns.values
-    missing_values_table(df)
-    df.shape
-    '''
     # merchant 违约率
 
     df.drop(['year', 'cancel_reason', 'check_remark', 'hit_merchant_white_list', 'mibao_result',
@@ -384,6 +358,12 @@ def get_all_data_mibao():
 
 def process_data_tableau(df):
     pd.set_option('display.max_rows', 200)
+    # 标注人工审核结果于target字段
+    df['target'] = np.NAN
+    df.loc[df['state_cao'].isin(['manual_check_fail']), 'target'] = 0
+    df.loc[df['state_cao'].isin(['manual_check_success', 'self_check_success']), 'target'] = 1
+    df.loc[df['state'].isin(pass_state_values), 'target'] = 1
+    df.loc[df['state'].isin(failure_state_values), 'target'] = 0
 
     # 订单最终壮状态标注
     df['target_state'] = np.NAN
@@ -398,38 +378,41 @@ def process_data_tableau(df):
                     'pending_refund_deposit', 'exchange_goods', 'pending_relet_pay',
                     'pending_compensate_check', 'pending_buyout_pay']
     df.loc[df['state'].isin(normal_order), 'target_state'] = '运行中订单'
-
     df.loc[df['state'].isin(['lease_finished', 'buyout_finished', 'relet_finished']), 'target_state'] = '完成'
     df.loc[df['state'].isin(['return_overdue', 'running_overdue']), 'target_state'] = '逾期'
-
-
     df.loc[df['state'].isin(['order_payment_overtime_canceled']), 'target_state'] = '付款超时'
     df.loc[df['state'].isin(['pending_artificial_credit_check']), 'target_state'] = '未处理-等待人工处理'
-    df.loc[df['state'].isin(['pending_order_receiving', 'pending_jimi_credit_check', 'pending_relet_start', 'pending_relet_check']), 'target_state'] = '未处理'
+    df.loc[df['state'].isin(['pending_order_receiving', 'pending_jimi_credit_check', 'pending_relet_start',
+                             'pending_relet_check']), 'target_state'] = '未处理'
     df.loc[df['state'].isin(['user_canceled']), 'target_state'] = '用户取消'
     df.loc[df['state'].isin(['pending_pay']), 'target_state'] = '等待支付'
-
-    feature_analyse(df, "target_state")
+    # feature_analyse(df, "bai_qi_shi_remark")
 
     # 熟人订单类型
     df['order_acquaintance'] = '陌生用户'
-    df.loc[df['cancel_reason'].str.contains('内部'), 'order_acquaintance'] = '内部员工'
-    df.loc[df['check_remark'].str.contains('内部'), 'order_acquaintance'] = '内部员工'
+    df.loc[df['cancel_reason'].str.contains('内部', na=False), 'order_acquaintance'] = '内部员工'
+    df.loc[df['check_remark'].str.contains('内部', na=False), 'check_remark'] = '内部员工'
     df.loc[df['hit_merchant_white_list'] == 1, 'order_acquaintance'] = '商户白名单'
-    df['hit_merchant_white_list']
 
+    def get_baiqishi_score(x):
+        ret = 0
+        if isinstance(x, type('str')):
+            ret_list = re.findall(r'final\w+core.:[\'\"]?([\d]+)', x)
+            ret = int(ret_list[0]) if len(ret_list) > 0 else 0
+        return ret
 
-    df.drop(['cancel_reason', 'check_remark' ],
+    df['baiqishi_score'] = df['bai_qi_shi_detail_json'].map(lambda x: get_baiqishi_score(x))
+
+    df.drop(['tongdun_detail_json', 'bai_qi_shi_detail_json', 'guanzhu_detail_json', 'mibao_detail_json', 'cancel_reason', 'check_remark', 'mibao_remark'],
             axis=1, inplace=True, errors='ignore')
     return df
 
 
-
-def bit_process(df: pd.DataFrame):
-    df = df.astype(str)
-    df.fillna('0', inplace=True)
-    df = np.where(df.str.contains('1'), 1, 0)
-    return df
+# def bit_process(df: pd.DataFrame):
+#     df = df.astype(str)
+#     df.fillna('0', inplace=True)
+#     df = np.where(df.str.contains('1', na=False), 1, 0)
+#     return df
 
 
 def get_order_data(order_id=None):
@@ -545,14 +528,15 @@ def get_order_data(order_id=None):
     all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
 
     # 特殊字符串的列预先处理下：
-    features = ['installment', 'commented', 'disposable_payment_enabled', 'face_check', 'face_live_check', 'hit_merchant_white_list']
+    features = ['installment', 'commented', 'disposable_payment_enabled', 'face_check', 'face_live_check',
+                'hit_merchant_white_list']
     for feature in features:
-        all_data_df[feature] = bit_process(all_data_df[feature])
+        all_data_df[feature] = all_data_df[feature].astype(str)
+        all_data_df[feature] = np.where(all_data_df[feature].str.contains('1', na=False), 1, 0)
 
     # 去除测试数据和内部员工数据
-    all_data_df = all_data_df[all_data_df['cancel_reason'].str.contains('测试') != True]
-    all_data_df = all_data_df[all_data_df['check_remark'].str.contains('测试') != True]
-
+    all_data_df = all_data_df[all_data_df['cancel_reason'].str.contains('测试', na=False) != True]
+    all_data_df = all_data_df[all_data_df['check_remark'].str.contains('测试', na=False) != True]
 
     return all_data_df
 
@@ -568,9 +552,6 @@ def feature_analyse(df, feature):
     print("空值率： {:.2f}%".format(100 * df[feature].isnull().sum() / len(df[feature])))
     print("value_counts: \r", df[feature].value_counts())
 
-    # df[feature].unique()
-    # df[df[feature].isnull()].sort_values(by='target').shape
-
     print("数据的趋势、集中趋势、紧密程度")
     print("数据分布、密度")
     print("数据相关性、周期性")
@@ -580,7 +561,9 @@ def feature_analyse(df, feature):
 df = pd.read_csv(os.path.join(data_path, "mibao.csv"), encoding='utf-8', engine='python')
 
 all_data_df = df.copy()
-feature_analyse(df, "target_state")
+
+feature_analyse(df, "mibao_remark")
+df[df['mibao_remark'].str.contains("机审审核通过", na=False)][['target_state', 'order_acquaintance', 'state_cao']]
 # missing_values_table(df)
 
 order_features = ['id', 'create_time', 'lease_start_time', 'finished_time', 'canceled_time', 'received_time',
