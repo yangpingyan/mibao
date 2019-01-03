@@ -13,7 +13,7 @@ from ds_utils import *
 
 # to make output display better
 pd.set_option('display.max_columns', 50)
-pd.set_option('display.max_rows', 70)
+pd.set_option('display.max_rows', 50)
 pd.set_option('display.width', 1000)
 
 # 全局变量定义
@@ -383,8 +383,9 @@ def get_all_data_mibao():
 
 
 def process_data_tableau(df):
+    pd.set_option('display.max_rows', 200)
+
     # 订单最终壮状态标注
-    # 默认未未处理订单
     df['target_state'] = np.NAN
     df.loc[df['state'].isin(['system_credit_check_unpass_canceled']), 'target_state'] = '机审拒绝'
     df.loc[df['state'].isin(['artificial_credit_check_unpass_canceled']), 'target_state'] = '人审拒绝'
@@ -410,6 +411,16 @@ def process_data_tableau(df):
 
     feature_analyse(df, "target_state")
 
+    # 熟人订单类型
+    df['order_acquaintance'] = '陌生用户'
+    df.loc[df['cancel_reason'].str.contains('内部'), 'order_acquaintance'] = '内部员工'
+    df.loc[df['check_remark'].str.contains('内部'), 'order_acquaintance'] = '内部员工'
+    df.loc[df['hit_merchant_white_list'] == 1, 'order_acquaintance'] = '商户白名单'
+    df['hit_merchant_white_list']
+
+
+    df.drop(['cancel_reason', 'check_remark' ],
+            axis=1, inplace=True, errors='ignore')
     return df
 
 
@@ -534,13 +545,14 @@ def get_order_data(order_id=None):
     all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
 
     # 特殊字符串的列预先处理下：
-    features = ['installment', 'commented', 'disposable_payment_enabled', 'face_check', 'face_live_check']
+    features = ['installment', 'commented', 'disposable_payment_enabled', 'face_check', 'face_live_check', 'hit_merchant_white_list']
     for feature in features:
         all_data_df[feature] = bit_process(all_data_df[feature])
 
     # 去除测试数据和内部员工数据
     all_data_df = all_data_df[all_data_df['cancel_reason'].str.contains('测试') != True]
     all_data_df = all_data_df[all_data_df['check_remark'].str.contains('测试') != True]
+
 
     return all_data_df
 
