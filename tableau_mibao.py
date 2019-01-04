@@ -386,7 +386,7 @@ def process_data_tableau(df):
                              'pending_relet_check']), 'target_state'] = '未处理'
     df.loc[df['state'].isin(['user_canceled']), 'target_state'] = '用户取消'
     df.loc[df['state'].isin(['pending_pay']), 'target_state'] = '等待支付'
-    # feature_analyse(df, "bai_qi_shi_remark")
+    # feature_analyse(df, "cancel_reason")
 
     # 熟人订单类型
     df['order_acquaintance'] = '陌生用户'
@@ -542,10 +542,6 @@ def get_order_data(order_id=None):
     return all_data_df
 
 
-# In[]
-comment_df = pd.read_csv(os.path.join(data_path, "mibao_comment.csv"), encoding='utf-8', engine='python')
-
-
 def feature_analyse(df, feature):
     print(df[df[feature].notnull()])
     print(comment_df[comment_df['column_name'] == feature])
@@ -558,12 +554,13 @@ def feature_analyse(df, feature):
     print("数据相关性、周期性")
     print("统计作图，更直观的发现数据的规律：折线图、直方图、饼形图、箱型图、对数图形、误差条形图")
 
+comment_df = pd.read_csv(os.path.join(data_path, "mibao_comment.csv"), encoding='utf-8', engine='python')
 
+# In[]
 df = pd.read_csv(os.path.join(data_path, "mibao.csv"), encoding='utf-8', engine='python')
-
 df = process_data_tableau(df)
 
-feature_analyse(df, "daily_rent")
+feature_analyse(df, "target")
 
 order_features = ['id', 'create_time', 'lease_start_time', 'finished_time', 'canceled_time', 'received_time',
                   'delivery_time', 'order_number', 'merchant_id', 'merchant_name', 'user_id', 'user_name', 'goods_name',
