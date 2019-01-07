@@ -194,7 +194,7 @@ class SpiderTianyangcha(object):
         base_table = {}
         url_search = self.url_search.format(company)
         self.browser.get(url_search)
-        time.sleep(round(random.uniform(1, 2), 2))
+        # time.sleep(round(random.uniform(1, 2), 2))
         content = self.browser.page_source.encode('utf-8')
         soup = BeautifulSoup(content, 'lxml')
         try:
@@ -230,7 +230,7 @@ class SpiderTianyangcha(object):
             base_table['公司名称'] = self.browser.find_element_by_xpath(
                 '//*[@id="company_web_top"]/div[2]/div[3]/div[1]/h1').text
         except:
-            print("可能是机器人识别， 识别结束后按键继续：", time.asctime())
+            print("（公司地址）可能是机器人识别， 识别结束后按键继续：", time.asctime())
             while True:
                 time.sleep(1)
                 if self.browser.current_url.find('captcha') < 0:
