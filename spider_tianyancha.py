@@ -468,6 +468,17 @@ class SpiderTianyangcha(object):
 if __name__ == '__main__':
     count = 0
 
+    print("Starting 51job table ")
+    while True:
+        count += 1
+        print(count)
+        spider = SpiderTianyangcha()
+        spider.login()
+        ret = spider.main_51job()
+
+        if ret != 0:
+            break
+
     print("Starting lagou table ")
     while True:
         count += 1
@@ -479,17 +490,6 @@ if __name__ == '__main__':
         if ret != 0:
             break
 
-    print("Starting 51job table ")
-
-    while True:
-        count += 1
-        print(count)
-        spider = SpiderTianyangcha()
-        spider.login()
-        ret = spider.main_51job()
-
-        if ret != 0:
-            break
 
 
 

@@ -56,7 +56,7 @@ ends_city = city_code_dict['杭州东']
 ##### 12:00--18:00->12:00--18:00
 ##### 18:00--24:00->18:00--24:00
 train_time = '00:00--24:00'
-order_number_list = [14]
+
 
 # 网址
 ticket_url = 'https://kyfw.12306.cn/otn/leftTicket/init'
@@ -92,6 +92,7 @@ train_date = datetime.now() + timedelta(days=29)
 train_date = train_date.strftime("%Y-%m-%d")
 print(train_date)
 passengers = ['张桦', '杨平言', '杨擎天']
+order_number_list = [17]
 
 # 加载查询信息
 browser.cookies.add({"_jc_save_fromStation": starts_city})
