@@ -56,7 +56,7 @@ ends_city = city_code_dict['杭州东']
 ##### 12:00--18:00->12:00--18:00
 ##### 18:00--24:00->18:00--24:00
 train_time = '00:00--24:00'
-order_number_list = [15]
+order_number_list = [14]
 
 # 网址
 ticket_url = 'https://kyfw.12306.cn/otn/leftTicket/init'
@@ -83,9 +83,6 @@ print(u"等待验证码，自行输入...")
 while browser.url != logined_url:
     time.sleep(1)
 
-
-# In[]
-
 browser.visit(ticket_url)
 ## order_number：车次，选择第几趟，0则从上至下依次点击，必选参数，如果要特定车次，需要先找到车次在列表中的次序，有效值如下：
 # 0->从上至下点击
@@ -104,7 +101,7 @@ browser.reload()
 
 
 # 11：30前刷新， 剩余10秒退出
-rob_time = datetime.now().replace(hour=11, minute=29, second=44)
+rob_time = datetime.now().replace(hour=9, minute=29, second=44)
 while True:
     now = datetime.now()
     print("sleeping ", now)
