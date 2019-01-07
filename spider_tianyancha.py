@@ -194,7 +194,7 @@ class SpiderTianyangcha(object):
         base_table = {}
         url_search = self.url_search.format(company)
         self.browser.get(url_search)
-        # time.sleep(round(random.uniform(1, 2), 2))
+        time.sleep(round(random.uniform(1, 2), 2))
         content = self.browser.page_source.encode('utf-8')
         soup = BeautifulSoup(content, 'lxml')
         try:
