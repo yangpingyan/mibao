@@ -8,6 +8,10 @@ import random
 
 from bs4 import BeautifulSoup
 from selenium import webdriver
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
+
 import pandas as pd
 import time
 import re, json, os, sys
@@ -143,7 +147,6 @@ class SpiderTianyangcha(object):
         woff_url = woff_url.replace("font.css", self.font_file)
         woff_url = woff_url.replace("css", "fonts")
         self.browser.get(woff_url)
-        time.sleep(round(random.uniform(1, 2), 2))
         # 创建字形列表template_glyph_list 及 对应的字列表 template_num_list
         font_template = TTFont(os.path.join(self.workdir, 'tyc-num_template.woff'))
         template_glyph_list = font_template.getGlyphOrder()[2:]
@@ -154,7 +157,14 @@ class SpiderTianyangcha(object):
         for key in template_glyph_list:
             template_font_coordinates.append(font_template['glyf'][key].coordinates)
 
-        font = TTFont(os.path.join(self.workdir, 'tyc-num.woff'))
+        while True:
+            try:
+                font = TTFont(os.path.join(self.workdir, 'tyc-num.woff'))
+                break
+            except:
+                print("There is no tyc-num.woff. Try again!")
+                time.sleep(1)
+
         # 取字体的交集
         glyph_list = list(set(font.getGlyphOrder()).intersection(set(template_num_list)))
         trans_map_dict = {}
@@ -167,10 +177,8 @@ class SpiderTianyangcha(object):
 
     def login(self):
         self.browser.get(self.url_login)
-        time.sleep(round(random.uniform(1, 2), 2))
+        WebDriverWait(self.browser, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "#web-content > div > div.container > div > div.login-right > div > div.module.module1.module2.loginmodule.collapse.in > div.title-tab.text-center > div:nth-child(2)"))).click()
         # 模拟登陆
-        self.browser.find_element_by_css_selector(
-            "#web-content > div > div.container > div > div.login-right > div > div.module.module1.module2.loginmodule.collapse.in > div.title-tab.text-center > div:nth-child(2)").click()
         self.browser.find_element_by_css_selector(
             "#web-content > div > div.container > div > div.login-right > div > div.module.module1.module2.loginmodule.collapse.in > div.modulein.modulein1.mobile_box.f-base.collapse.in > div.pb30.position-rel > input").send_keys(
             self.username)
