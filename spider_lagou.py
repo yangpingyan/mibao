@@ -65,7 +65,7 @@ class SpiderLagou(object):
             # print("成功插入一条信息")
 
     # 插入信息函数，每次插入一条信息，插入信息失败会回滚
-    def insert_data_df(self, df:pd.DataFrame):
+    def insert_data_df(self, df: pd.DataFrame):
         '''插入数据，不成功就回滚操作'''
         df.reset_index(inplace=True)
         sql = '''INSERT INTO `{}`(company_name, job_site, company_id, job_create_time) VALUES('{}','{}','{}','{}')'''
@@ -163,5 +163,5 @@ if __name__ == "__main__":
         print(city)
         crawl = SpiderLagou()
         crawl.main(city, ' ')
-        time.sleep(round(random.uniform(3,5), 2))
+        time.sleep(round(random.uniform(3, 5), 2))
     print("Mission Complete")
