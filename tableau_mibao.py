@@ -403,9 +403,22 @@ def process_data_tableau(df):
 
     df['baiqishi_score'] = df['bai_qi_shi_detail_json'].map(lambda x: get_baiqishi_score(x))
 
+    # 时间处理
+    features_time = ['create_time', 'finished_time', 'canceled_time', 'received_time', 'delivery_time',
+                     'manual_check_start_time', 'manual_check_end_time', 'order_cancle_time']
+    for feature in features_time:
+        df[feature] = pd.to_datetime(df[feature])
+
+    df['canceled_time_interval'] = (df['canceled_time'] - df['create_time']).dt.seconds / 60
+    df['manual_check_end_time_interval'] = (df['manual_check_end_time'] - df['create_time']).dt.seconds / 60
+    df['delivery_time_interval'] = (df['received_time'] - df['delivery_time']).dt.seconds / 60
+
+
     # detail_json 暂不处理
-    df.drop(['tongdun_detail_json', 'bai_qi_shi_detail_json', 'guanzhu_detail_json', 'mibao_detail_json', 'cancel_reason', 'check_remark', 'mibao_remark'],
-            axis=1, inplace=True, errors='ignore')
+    df.drop(
+        ['tongdun_detail_json', 'bai_qi_shi_detail_json', 'guanzhu_detail_json', 'mibao_detail_json', 'cancel_reason',
+         'check_remark', 'mibao_remark'],
+        axis=1, inplace=True, errors='ignore')
     return df
 
 
@@ -554,15 +567,17 @@ def feature_analyse(df, feature):
     print("数据相关性、周期性")
     print("统计作图，更直观的发现数据的规律：折线图、直方图、饼形图、箱型图、对数图形、误差条形图")
 
+
 comment_df = pd.read_csv(os.path.join(data_path, "mibao_comment.csv"), encoding='utf-8', engine='python')
 
 # In[]
 df = pd.read_csv(os.path.join(data_path, "mibao.csv"), encoding='utf-8', engine='python')
 df = process_data_tableau(df)
+df['canceled_time_interval'].value_counts()
+save_data(df, 'mibao.csv')
+feature_analyse(df, "canceled_time_interval")
 
-feature_analyse(df, "target")
-
-order_features = ['id', 'create_time', 'lease_start_time', 'finished_time', 'canceled_time', 'received_time',
+order_features = ['id', 'create_time', 'finished_time', 'canceled_time', 'received_time',
                   'delivery_time', 'order_number', 'merchant_id', 'merchant_name', 'user_id', 'user_name', 'goods_name',
                   'state', 'cost', 'discount', 'installment', 'rem_pay_num', 'pay_num', 'added_service', 'first_pay',
                   'first_pay_time', 'full', 'billing_method', 'pay_type', 'user_receive_time', 'bounds_example_id',
