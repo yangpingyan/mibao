@@ -27,6 +27,7 @@ class SpiderTianyangcha(object):
         except:
             workdir = os.getcwd()
         self.workdir = workdir
+        self.from_table = None
 
         sql_file = os.path.join(workdir, 'sql', 'sql_mibao_spider.json')
         ssh_pkey = os.path.join(workdir, 'sql', 'sql_pkey')
@@ -50,8 +51,10 @@ class SpiderTianyangcha(object):
         options = webdriver.ChromeOptions()
         prefs = {'profile.default_content_settings.popups': 0, 'download.default_directory': self.font_path}
         options.add_experimental_option('prefs', prefs)
-        self.browser = webdriver.Chrome(executable_path=os.path.join(self.workdir, 'others', 'chromedriver.exe'), chrome_options=options)
+        self.browser = webdriver.Chrome(executable_path=os.path.join(self.workdir, 'others', 'chromedriver.exe'),
+                                        chrome_options=options)
         self.create_woff_map()
+        self.login()
 
     # 创建表格的函数，表格名称按照时间和关键词命名
     def create_table(self):
@@ -84,10 +87,10 @@ class SpiderTianyangcha(object):
                       `insurance_contributors` varchar(50) DEFAULT NULL COMMENT '参保人数',
                       `english_name` varchar(50) DEFAULT NULL COMMENT '英文名称',
                       `registered_address` varchar(50) DEFAULT NULL COMMENT '注册地址',
-                      `business_scope` varchar(50) DEFAULT NULL COMMENT '经营范围',
-                      `id_51job` int(10) unsigned DEFAULT NULL COMMENT '表51job对应的id',
-                      `id_lagou` int(10) unsigned DEFAULT NULL COMMENT '表lagou对应的id',
+                      `business_scope` varchar(50) DEFAULT NULL COMMENT '经营范围',                      
                       `link` varchar(255) DEFAULT NULL COMMENT '公司信息获取的链接地址',
+                      `from_table` varchar(50) DEFAULT NULL COMMENT '公司名称来源哪张表',
+                      `id_related` int(10) unsigned DEFAULT NULL COMMENT '表对应的id',
                       PRIMARY KEY (`id`)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8'''
 
@@ -99,28 +102,28 @@ class SpiderTianyangcha(object):
             self.conn.commit()
             print("成功创建一个表格{}".format(self.table_name))
 
-
     # 插入信息函数，每次插入一条信息，插入信息失败会回滚
-    def insert_data(self, data:dict):
+    def insert_data(self, data: dict):
         '''插入数据，不成功就回滚操作'''
-        sql = '''INSERT INTO `{}`(company_name, phone, email, website,
+        sql = '''REPLACE INTO `{}`(company_name, phone, email, website,
                                address, introduction, legal_person, registered_capital,
                                registered_date, company_status, registered_number,
                                organization_code, social_credit_code, company_type,
                                taxpayer_number, industry, operating_period, approval_date,
                                taxpayer_qualification, staff_size, contributed_capital,
                                registration_office, insurance_contributors, english_name,
-                               registered_address, business_scope, {}, link) 
+                               registered_address, business_scope, link, from_table, id_related ) 
                                VALUES('{}','{}','{}','{}','{}','{}','{}','{}','{}','{}','{}','{}','{}',
-                               '{}','{}','{}','{}','{}','{}','{}','{}','{}','{}','{}','{}','{}','{}','{}') ; '''
+                               '{}','{}','{}','{}','{}','{}','{}','{}','{}','{}','{}','{}','{}','{}','{}','{}') ; '''
         try:
             self.conn.cursor().execute(
-                sql.format(self.table_name, self.id_related, data.get('公司名称'), data.get('电话'), data.get('邮箱'), data.get('网址'),
+                sql.format(self.table_name, data.get('公司名称'), data.get('电话'), data.get('邮箱'), data.get('网址'),
                            data.get('地址'), data.get('简介'), data.get('法人'), data.get('注册资本'), data.get('注册时间'),
                            data.get('状态'), data.get('工商注册号'), data.get('组织机构代码'), data.get('统一社会信用代码'),
                            data.get('公司类型'), data.get('纳税人识别号'), data.get('行业'), data.get('营业期限'), data.get('核准日期'),
                            data.get('纳税人资质'), data.get('人员规模'), data.get('实缴资本'), data.get('登记机关'), data.get('参保人数'),
-                           data.get('英文名称'), data.get('注册地址'), data.get('经营范围'), data.get('id_related'), data.get('link')))
+                           data.get('英文名称'), data.get('注册地址'), data.get('经营范围'), data.get('link'), self.from_table,
+                           data.get('id_related')))
         except Exception as e:
             self.conn.rollback()
             print("插入信息失败，原因：", e)
@@ -177,8 +180,13 @@ class SpiderTianyangcha(object):
 
     def login(self):
         self.browser.get(self.url_login)
-        WebDriverWait(self.browser, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "#web-content > div > div.container > div > div.login-right > div > div.module.module1.module2.loginmodule.collapse.in > div.title-tab.text-center > div:nth-child(2)"))).click()
+        time.sleep(round(random.uniform(1, 2), 2))
         # 模拟登陆
+
+        WebDriverWait(self.browser, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR,
+                                                                          "#web-content > div > div.container > div > div.login-right > div > div.module.module1.module2.loginmodule.collapse.in > div.title-tab.text-center > div:nth-child(2)")))
+        self.browser.find_element(By.CSS_SELECTOR,
+                                  "#web-content > div > div.container > div > div.login-right > div > div.module.module1.module2.loginmodule.collapse.in > div.title-tab.text-center > div:nth-child(2)").click()
         self.browser.find_element_by_css_selector(
             "#web-content > div > div.container > div > div.login-right > div > div.module.module1.module2.loginmodule.collapse.in > div.modulein.modulein1.mobile_box.f-base.collapse.in > div.pb30.position-rel > input").send_keys(
             self.username)
@@ -188,15 +196,14 @@ class SpiderTianyangcha(object):
         self.browser.find_element_by_css_selector(
             "#web-content > div > div.container > div > div.login-right > div > div.module.module1.module2.loginmodule.collapse.in > div.modulein.modulein1.mobile_box.f-base.collapse.in > div.btn.-hg.btn-primary.-block").click()
 
-
     def get_tianyancha(self, company):
         decode_list = []
         base_table = {}
         url_search = self.url_search.format(company)
         self.browser.get(url_search)
         time.sleep(round(random.uniform(1, 2), 2))
-        content = self.browser.page_source.encode('utf-8')
-        soup = BeautifulSoup(content, 'lxml')
+        # content = self.browser.page_source.encode('utf-8')
+        # soup = BeautifulSoup(content, 'lxml')
         try:
             url_company = self.browser.find_element_by_css_selector(
                 "#web-content > div > div.container-left > div > div.result-list > div:nth-child(1) > div > div.content > div.header > a").get_attribute(
@@ -253,11 +260,11 @@ class SpiderTianyangcha(object):
             abstract = self.browser.find_element_by_xpath(
                 "//div[@class='summary']/script")  # @class='sec-c2 over-hide'
             base_table['简介'] = self.browser.execute_script("return arguments[0].textContent",
-                                                                     abstract).strip()
+                                                           abstract).strip()
         except:
             abstract = self.browser.find_element_by_xpath("//div[@class='summary']")
             base_table['简介'] = self.browser.execute_script("return arguments[0].textContent",
-                                                                     abstract).strip()[3:]
+                                                           abstract).strip()[3:]
 
         # baseInfo 表格信息
         try:
@@ -279,7 +286,7 @@ class SpiderTianyangcha(object):
             except:
                 print("信息未公开， 放弃爬取")
                 return base_table
-            if(base_table['法人'] in ['未公开']):
+            if (base_table['法人'] in ['未公开']):
                 print("信息未公开， 放弃爬取")
                 return base_table
             try:
@@ -312,8 +319,6 @@ class SpiderTianyangcha(object):
                 except:
                     pass
 
-
-
             try:
                 base_table['状态'] = rows1[3].find_elements_by_tag_name('td')[0].text.split('\n')[1]
             except:
@@ -333,11 +338,25 @@ class SpiderTianyangcha(object):
             else:
                 print('base_table_2（公司基本信表2）行数不为偶数，请检查代码！')
 
-            # 数字解密
+            # 数字解密, 先检查日期是否是正确数字
             # decode_list = ['注册资本', '注册时间', '核准日期']
+            decode_list.sort()
             for item in decode_list:
                 if base_table.get(item) is not None:
-                    base_table[item] = base_table.get(item).translate(self.trans_map)
+                    tmp = base_table.get(item).translate(self.trans_map)
+                    if item in ['注册时间', '核准日期']:
+                        try:
+                            if tmp[:2] not in ['19', '20']:
+                                print("解密出错，退出重先爬取。。。")
+                                self.create_woff_map()
+                                tmp = base_table.get(item).translate(self.trans_map)
+                            else:
+                                pass
+
+                        except:
+                            pass
+
+                    base_table[item] = tmp
 
         return base_table
 
@@ -346,8 +365,10 @@ class SpiderTianyangcha(object):
         if os.path.exists(tyc_file):
             df = pd.read_csv(tyc_file)
             # last_id = max(df['id'])
-            tyc_df = pd.read_sql('''SELECT j.id, j.`company_name` FROM  `tianyancha` j WHERE j.id > {}; '''.format(max(df['id'])), self.conn)
-            df = pd.concat([df,tyc_df])
+            tyc_df = pd.read_sql(
+                '''SELECT j.id, j.`company_name` FROM  `tianyancha` j WHERE j.id > {}; '''.format(max(df['id'])),
+                self.conn)
+            df = pd.concat([df, tyc_df])
         else:
             df = pd.read_sql('''SELECT j.id, j.`company_name` FROM  `tianyancha` j ;''', self.conn)
 
@@ -356,12 +377,15 @@ class SpiderTianyangcha(object):
 
     def get_companys_51job(self):
         start_time = time.clock()
-        self.id_related = 'id_51job'
-        df = pd.read_sql('''SELECT * FROM `tianyancha` WHERE id_51job > 0 ORDER BY id DESC LIMIT 1;''', self.conn)
+        self.from_table = '51job'
+        df = pd.read_sql('''SELECT * FROM `tianyancha` WHERE from_table = '51job' ORDER BY id_related DESC LIMIT 1;''',
+                         self.conn)
         last_id = 0
         if len(df) > 0:
-            last_id = df['id_51job'][0]
-        companys_51job_df = pd.read_sql('''SELECT j.id, j.`real_name` FROM  `51job` j WHERE j.`id` > {} ORDER BY j.id;'''.format(last_id), self.conn)
+            last_id = df['id_related'][0]
+        companys_51job_df = pd.read_sql(
+            '''SELECT j.id, j.`real_name` FROM  `51job` j WHERE j.`id` > {} ORDER BY j.id;'''.format(last_id),
+            self.conn)
         companys_tyc_df = self.get_companys_tyc()
         print(time.clock() - start_time)
 
@@ -373,13 +397,15 @@ class SpiderTianyangcha(object):
 
     def get_companys_lagou(self):
         start_time = time.clock()
-        self.id_related = 'id_lagou'
-        df = pd.read_sql('''SELECT * FROM `tianyancha` WHERE id_lagou > 0 ORDER BY id DESC LIMIT 1;''', self.conn)
+        self.from_table = 'lagou'
+        df = pd.read_sql('''SELECT * FROM `tianyancha` WHERE from_table = 'lagou' ORDER BY id_related DESC LIMIT 1;''',
+                         self.conn)
         last_id = 0
         if len(df) > 0:
-            last_id = df['id_lagou'][0]
+            last_id = df['id_related'][0]
         companys_lagou_df = pd.read_sql(
-            '''SELECT j.id, j.`company_name` FROM  `lagou` j WHERE j.`id` > {} ORDER BY j.id;'''.format(last_id), self.conn)
+            '''SELECT j.id, j.`company_name` FROM  `lagou` j WHERE j.`id` > {} ORDER BY j.id;'''.format(last_id),
+            self.conn)
 
         companys_tyc_df = self.get_companys_tyc()
         print(time.clock() - start_time)
@@ -397,23 +423,15 @@ class SpiderTianyangcha(object):
         if len(companys_df) > 0:
             ret = 0
             companys = companys_df['real_name'].values.tolist()
-            for company in companys[:random.randint(20,30)]:
+            for company in companys:
                 print("Start to crawl :", companys_df[companys_df['real_name'] == company])
                 base_table = self.get_tianyancha(company)
                 if base_table is None:
                     continue
                 else:
                     print(base_table)
-                    try:
-                        if base_table['注册时间'][:2] in ['19', '20']:
-                            base_table['id_related'] = companys_df[companys_df['real_name'] == company]['id'].values[0]
-                            self.insert_data(base_table)
-                        else:
-                            print("解密出错，退出重先爬取。。。")
-                            self.create_woff_map()
-                            continue
-                    except:
-                        continue
+                    base_table['id_related'] = companys_df[companys_df['real_name'] == company]['id'].values[0]
+                    self.insert_data(base_table)
 
         self.close()
         self.browser.close()
@@ -427,23 +445,15 @@ class SpiderTianyangcha(object):
         if len(companys_df) > 0:
             ret = 0
             companys = companys_df['company_name'].values.tolist()
-            for company in companys[:random.randint(20,30)]:
+            for company in companys:
                 print("Start to crawl :", companys_df[companys_df['company_name'] == company])
                 base_table = self.get_tianyancha(company)
                 if base_table is None:
                     continue
                 else:
                     print(base_table)
-                    try:
-                        if base_table['注册时间'][:2] in ['19', '20']:
-                            base_table['id_related'] = companys_df[companys_df['company_name'] == company]['id'].values[0]
-                            self.insert_data(base_table)
-                        else:
-                            print("解密出错，退出重先爬取。。。")
-                            self.create_woff_map()
-                            continue
-                    except:
-                        continue
+                    base_table['id_related'] = companys_df[companys_df['company_name'] == company]['id'].values[0]
+                    self.insert_data(base_table)
 
         self.close()
         self.browser.close()
@@ -473,6 +483,31 @@ class SpiderTianyangcha(object):
         self.browser.close()
         return 0
 
+    def crawl_company(self, company):
+        df = pd.read_sql('''select * from tianyancha t WHERE t.company_name = '{}';'''.format(company), self.conn)
+        if len(df) > 0:
+            return df
+
+        print("Start to crawl :", company)
+        base_table = self.get_tianyancha(company)
+        if base_table is not None:
+            print(base_table)
+            try:
+                if base_table['注册时间'][:2] in ['19', '20']:
+                    self.insert_data(base_table)
+                    df = pd.read_sql('''select * from tianyancha t WHERE t.company_name = '{}';'''.format(company),
+                                     self.conn)
+                    return df
+                else:
+                    print("解密出错，退出重先爬取。。。")
+                    self.create_woff_map()
+                    self.crawl_company(company)
+            except:
+                pass
+
+        return df
+
+
 if __name__ == '__main__':
     count = 0
 
@@ -481,7 +516,6 @@ if __name__ == '__main__':
         count += 1
         print(count)
         spider = SpiderTianyangcha()
-        spider.login()
         ret = spider.main_51job()
 
         if ret != 0:
@@ -492,13 +526,9 @@ if __name__ == '__main__':
         count += 1
         print(count)
         spider = SpiderTianyangcha()
-        spider.login()
         ret = spider.main_lagou()
 
         if ret != 0:
             break
-
-
-
 
     print("tianyancha spider completed")

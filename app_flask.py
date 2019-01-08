@@ -9,16 +9,19 @@ import json
 import warnings
 from gevent.pywsgi import WSGIServer
 from sql.sql import sql_connect
+from spider_tianyancha import SpiderTianyangcha
 
-try:
-    workdir = os.path.dirname(os.path.realpath(__file__))
-except:
-    workdir = os.getcwd()
 
-sql_file = os.path.join(workdir, 'sql', 'sql_mibao_spider.json')
-ssh_pkey = os.path.join(workdir, 'sql', 'sql_pkey')
-conn = sql_connect('enterprise', sql_file, ssh_pkey)
-
+#
+# try:
+#     workdir = os.path.dirname(os.path.realpath(__file__))
+# except:
+#     workdir = os.getcwd()
+#
+# sql_file = os.path.join(workdir, 'sql', 'sql_mibao_spider.json')
+# ssh_pkey = os.path.join(workdir, 'sql', 'sql_pkey')
+# conn = sql_connect('enterprise', sql_file, ssh_pkey)
+spider = SpiderTianyangcha()
 
 app = Flask(__name__)
 
@@ -27,8 +30,9 @@ app = Flask(__name__)
 def get_predict_result():
     company_name = request.args.get("name")
     print(company_name)
-    df = pd.read_sql('''SELECT * FROM `tianyancha` WHERE company_name = '{}';'''.format(company_name), conn)
-    df = df.drop(columns=['id', 'id_51job', 'id_lagou', 'create_time'])
+    # df = pd.read_sql('''SELECT * FROM `tianyancha` WHERE company_name = '{}';'''.format(company_name), conn)
+    df = spider.crawl_company(company_name)
+    df = df.drop(columns=['id', 'id_51job', 'id_lagou', 'create_time', 'id_related', 'from_table'], errors='ignore')
     company_dict = {}
     if len(df) > 0:
         for col in df.columns:
