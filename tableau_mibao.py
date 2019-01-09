@@ -32,11 +32,17 @@ def sql_connect_mibao_rds():
     return sql_conn
 
 
+global sql_conn
 sql_conn = sql_connect_mibao_rds()
 
 
 def read_sql_query(sql):
-    df = pd.read_sql(sql, sql_conn)
+    global sql_conn
+    try:
+        df = pd.read_sql(sql, sql_conn)
+    except:
+        sql_conn = sql_connect_mibao_rds()
+        df = pd.read_sql(sql, sql_conn)
     return df
 
 
@@ -61,8 +67,7 @@ sql_tables = ['face_id', 'face_id_liveness', 'jimi_order_check_result', 'order',
               'user_device', 'user_third_party_account', 'user_zhima_cert', 'credit_audit_order', 'risk_white_list']
 
 # 数据库表中的相关字段
-
-order_features = ['id', 'create_time', 'lease_start_time', 'finished_time', 'canceled_time', 'received_time',
+order_features = ['id', 'create_time', 'finished_time', 'canceled_time', 'received_time',
                   'delivery_time', 'order_number', 'merchant_id', 'merchant_name', 'user_id', 'user_name', 'goods_name',
                   'state', 'cost', 'discount', 'installment', 'rem_pay_num', 'pay_num', 'added_service', 'first_pay',
                   'first_pay_time', 'full', 'billing_method', 'pay_type', 'user_receive_time', 'bounds_example_id',
@@ -70,7 +75,7 @@ order_features = ['id', 'create_time', 'lease_start_time', 'finished_time', 'can
 
                   'credit_check_author', 'lease_term', 'commented',
                   'daily_rent', 'accident_insurance',
-                  'description', 'type', 'freeze_money', 'sign_state',
+                  'type', 'freeze_money', 'sign_state',
                   'ip',
                   'releted', 'service_enable', 'exchange_enable',
                   'relet_appliable', 'order_type', 'delivery_way', 'buyouted',
@@ -148,181 +153,6 @@ mibao_ml_features = ['merchant_id', 'pay_num', 'added_service',
                      ]
 
 
-def process_data_mibao(df):
-    # 取phone前3位
-    df['phone'][df['phone'].isnull()] = df['phone_user'][df['phone'].isnull()]
-    df['phone'].fillna(value='0', inplace=True)
-    df['phone'][df['phone'].str.len() != 11] = '0'
-    df['phone'] = df['phone'].str.slice(0, 3)
-
-    phone_list = ['130', '131', '132', '133', '134', '135', '136', '137', '138', '139', '147',
-                  '150', '151', '152', '153', '155', '156', '157', '158', '159', '166', '170', '171',
-                  '173', '175', '176', '177', '178', '180', '181', '182', '183', '184', '185', '186',
-                  '187', '188', '189', '198', '199']
-    type_list = ['DEPOSIT_ORDER', 'LEASE_ORDER', 'PCREDIT_FREEZE_ORDER', 'RELET_ORDER']
-    source_list = ['aliPay', 'alipayMiniProgram', 'android', 'ios', 'jd', 'saas', 'weChat', 'weChatMiniProgram']
-    merchant_store_id_list = [22.0, 36.0, 40.0, 42.0, 43.0, 45.0, 46.0, 47.0, 48.0, 49.0, 52.0, 53.0, 54.0,
-                              55.0, 56.0, 60.0, 62.0, 67.0, 70.0, 72.0, 73.0, 75.0, 76.0, 77.0, 81.0, 85.0, 131.0,
-                              137.0, 139.0, 140.0, 142.0, 144.0, 145.0, 146.0, 149.0, 151.0, 155.0, 161.0, 162.0, 168.0,
-                              170.0, 171.0, 172.0, 173.0, 176.0, 186.0, 196.0, 197.0, 199.0, 200.0, 201.0, 204.0, 207.0,
-                              209.0, 214.0, 450.0, 452.0, 453.0, 455.0, 464.0, 465.0, 467.0, 468.0, 470.0, 471.0, 472.0,
-                              473.0, 476.0, 478.0, 481.0, 482.0, 483.0, 485.0, 489.0, 491.0, 496.0, 19900002.0,
-                              47800001.0]
-    device_type_list = ['OTHER', 'android', 'h5', 'ios', 'web']
-    goods_type_list = ['VR眼睛', 'VR眼镜', '一体机', '健康监测', '光碟', '其他玩具', '其他生活电器', '剃须刀', '办公配件', '医疗健康', '厨房电器', '口腔护理',
-                       '台式电脑', '台球', '吸尘器/除螨器', '品质冰箱', '品质生活', '品质音响', '女神节专区', '安卓专区', '安卓手机', '平板', '平板电脑', '平衡车',
-                       '户外旅行', '手机', '手机配件', '手表', '打印机', '扫地机器人', '投影仪', '新人专区', '无人机', '无人飞机', '早教益智', '时尚手表', '时尚箱包',
-                       '时尚耳机', '显示器', '智力开发', '智能出行', '智能手表', '智能电视', '智能硬件', '洁面仪', '洗衣机', '洗衣神器', '游戏主机', '游戏光碟',
-                       '游戏电竞', '潮流相机', '灭蚊器', '爆款推荐', '玩具', '电动摩托车', '电动汽车', '电动车', '电吹风', '电子阅读', '电视机', '相机配件',
-                       '相机镜头', '积木王国', '移动硬盘', '空气净化器', '笔记本', '绿色出行', '美容仪', '翻译机', '耳机', '苹果专区', '苹果手机', '路由器',
-                       '运动器材', '酷乐玩具', '音乐播放器', '音响', '鼠标键盘']
-    merchant_id_list = [22, 24, 32, 33, 34, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54,
-                        55, 56, 58, 59, 60, 61, 62, 63, 65, 67, 68, 70, 71, 72, 73, 74, 75, 76, 77, 81, 85, 131, 137,
-                        139, 140, 142, 144, 145, 146, 149, 150, 151, 155, 161, 162, 168, 170, 171, 172, 173, 176, 186,
-                        188, 192, 193, 195, 196, 197, 199, 200, 201, 204, 207, 209, 214, 274, 299, 414, 450, 452, 453,
-                        455, 457, 458, 459, 460, 461, 462, 463, 464, 465, 466, 467, 468, 470, 471, 472, 473, 476, 478,
-                        479, 481, 482, 483, 485, 489, 491, 496]
-    order_type_list = ['COMMON', 'PUSHING']
-    regist_channel_type_list = [0.0, 1.0, 2.0, 3.0, 4.0, 105.0, 112.0, 113.0, 117.0]
-    occupational_identity_type_list = ['civil_servant', 'company_clerk', 'company_manager',
-                                       'enterprises_clerk', 'other', 'public_institution', 'teacher']
-    ingress_type_list = ['APP', 'WEB']
-    device_type_os_list = ['ANDROID', 'APPLE', 'OTHER', 'ios']
-    bai_qi_shi_result_list = ['accept', 'reject', 'review']
-    guanzhu_result_list = ['命中', '未命中']
-    tongdun_result_list = ['pass', 'reject', 'review']
-    delivery_way_list = ['PRIVATE_STORE', 'TO_DOOR_SERVICE']
-    old_level_list = ['7成新', '8成新', '9成新', '二手', '全新', '非全新']
-    category_list = ['个人护理', '休闲游戏', '优享电脑', '免租专区', '出行', '办公', '办公设备', '女神节专区', '家用电器', '家电', '影音娱乐', '手机', '数码',
-                     '新人专区', '时尚手机', '智能学习', '游戏', '潮流数码', '潮玩', '生活', '电脑', '益智玩具', '绿色出行', '运动户外', '高端奢侈']
-
-    final_decision_list = ['拒绝', '通过', '需评估']
-
-    features_cat = ['type', 'source', 'merchant_store_id',
-                    'device_type', 'goods_type', 'merchant_id', 'order_type', 'regist_channel_type',
-                    'occupational_identity_type', 'ingress_type', 'device_type_os',
-                    'bai_qi_shi_result', 'guanzhu_result', 'tongdun_result', 'delivery_way', 'old_level', 'category',
-                    'final_decision', 'phone']
-
-    for feature in features_cat:
-        feature_list = eval(feature + '_list')
-        feature_dict = dict(zip(feature_list, range(1, len(feature_list) + 1)))
-        df[feature] = df[feature].map(lambda x: feature_dict.get(x, 0))
-
-    # 数据处理
-    df['xiaobaiScore'] = df['order_detail'].map(
-        lambda x: json.loads(x).get('xiaobaiScore', 0) if isinstance(x, str) else 0)
-    df['zmxyScore'] = df['order_detail'].map(lambda x: json.loads(x).get('zmxyScore', 0) if isinstance(x, str) else '0')
-    df['xiaobaiScore'] = df['xiaobaiScore'].map(lambda x: float(x) if str(x) > '0' else 0)
-    df['zmxyScore'] = df['zmxyScore'].map(lambda x: float(x) if str(x) > '0' else 0)
-
-    # 只判断是否空值的特征处理
-    features_cat_null = ['bounds_example_id', 'distance', 'fingerprint', 'added_service',
-                         'recommend_code', 'regist_device_info', 'company', 'company_phone', 'workplace',
-                         'idcard_pros', ]
-    for feature in features_cat_null:
-        df[feature].fillna(0, inplace=True)
-        df[feature] = np.where(df[feature].isin(['', ' ', 0]), 0, 1)
-
-    df['deposit'] = np.where(df['deposit'] == 0, 0, 1)
-
-    df['head_image_url'].fillna(value=0, inplace=True)
-    df['head_image_url'] = df['head_image_url'].map(
-        lambda x: 0 if x == ("headImg/20171126/ll15fap1o16y9zfr0ggl3g8xptgo80k9jbnp591d.png") or x == 0 else 1)
-
-    df['share_callback'] = np.where(df['share_callback'] < 1, 0, 1)
-    df['tag'] = np.where(df['tag'].str.match('new'), 1, 0)
-    df['account_num'].fillna(value=0, inplace=True)
-    df['final_score'].fillna(value=0, inplace=True)
-
-    df['cert_no'][df['cert_no'].isnull()] = df['card_id'][df['cert_no'].isnull()]
-    # 有45个身份证号缺失但审核通过的订单， 舍弃不要。
-    df = df[df['cert_no'].notnull()]
-
-    # 处理芝麻信用分 '>600' 更改成600
-    df['zmxy_score'][df['zmxy_score'].isin(['', ' '])] = 0
-    zmf = [0.0] * len(df)
-    xbf = [0.0] * len(df)
-    for row, detail in enumerate(df['zmxy_score'].tolist()):
-        # print(row, detail)
-        if isinstance(detail, type('hh')):
-            if '/' in detail:
-                score = detail.split('/')
-                xbf[row] = 0 if score[0] == '' else (float(score[0]))
-                zmf[row] = 0 if score[1] == '' else (float(score[1]))
-            # print(score, row)
-            elif '>' in detail:
-                zmf[row] = 600
-            else:
-                score = float(detail)
-                if score <= 200:
-                    xbf[row] = score
-                else:
-                    zmf[row] = score
-
-    df['zmf'] = zmf
-    df['xbf'] = xbf
-
-    df['zmf'][df['zmf'] == 0] = df['zmxyScore'][df['zmf'] == 0].astype(float)  # 26623
-    df['xbf'][df['xbf'] == 0] = df['xiaobaiScore'][df['xbf'] == 0].astype(float)  # 26623
-    df['zmf'].fillna(value=0, inplace=True)
-    df['xbf'].fillna(value=0, inplace=True)
-    # zmf_most = df['zmf'][df['zmf'] > 0].value_counts().index[0]
-    # xbf_most = df['xbf'][df['xbf'] > 0].value_counts().index[0]
-    df['zmf'][df['zmf'] == 0] = 600  # zmf_most
-    df['xbf'][df['xbf'] == 0] = 87.6  # xbf_most
-
-    # order_id =9085, 9098的crate_time 是错误的
-    df = df[df['create_time'] > '2016']
-    # 把createtime分成月周日小时
-    df['create_time'] = pd.to_datetime(df['create_time'])
-    df['year'] = df['create_time'].map(lambda x: x.year)
-    # df['month'] = df['create_time'].map(lambda x: x.month)
-    df['day'] = df['create_time'].map(lambda x: x.day)
-    df['weekday'] = df['create_time'].map(lambda x: x.weekday())
-    df['hour'] = df['create_time'].map(lambda x: x.hour)
-
-    # 根据身份证号增加性别和年龄 年龄的计算需根据订单创建日期计算
-    df['age'] = df['year'] - df['cert_no'].str.slice(6, 10).astype(int)
-    df['sex'] = df['cert_no'].str.slice(-2, -1).astype(int) % 2
-
-    #
-    # # 处理mibao_detail_json
-    # df['tdTotalScore'] = 0
-    # df['zu_lin_ren_shen_fen_zheng_yan_zheng'] = 0
-    # df['zu_lin_ren_xing_wei'] = 0
-    # df['shou_ji_hao_yan_zheng'] = 0
-    # df['fan_qi_za'] = 0
-    # df.reset_index(inplace=True)
-    # for index, value in enumerate(df['mibao_detail_json']):
-    #     if isinstance(value, type('str')):
-    #         mb_list = json.loads(value)
-    #         if (len(mb_list) == 5):
-    #             for mb in mb_list:
-    #                 df.at[index, mb.get('relevanceRule', 'error')] = mb.get('score', 0)
-    #                 # print(mb.get('relevanceRule', 'error'))
-    #                 # print(mb.get('score', 0))
-
-    # 未处理的特征
-    df.drop(['cert_no_expiry_date', 'regist_useragent', 'cert_no_json', ],
-            axis=1, inplace=True, errors='ignore')
-    # 已使用的特征
-    df.drop(['zmxy_score', 'card_id', 'phone_user', 'xiaobaiScore', 'zmxyScore', 'cert_no',
-             'bai_qi_shi_detail_json', 'guanzhu_detail_json', 'mibao_detail_json',
-             'order_detail'], axis=1,
-            inplace=True, errors='ignore')
-    # 与其他特征关联度过高的特征
-    df.drop(['lease_num', 'installment'], axis=1, inplace=True, errors='ignore')
-
-    # merchant 违约率
-
-    df.drop(['year', 'cancel_reason', 'check_remark', 'hit_merchant_white_list', 'mibao_result',
-             'tongdun_detail_json', 'order_number', 'joke', 'mibao_remark', 'tongdun_remark', 'bai_qi_shi_remark',
-             'guanzhu_remark'], axis=1, inplace=True, errors='ignore')
-
-    return df
-
-
 def save_data(df, filename):
     df.to_csv(os.path.join(data_path, filename), index=False)
 
@@ -346,8 +176,7 @@ def read_data(table_name, features, field='order_id', field_value=None):
 
 def get_all_data_mibao():
     df = get_order_data()
-    df = process_data_tableau(df)
-    save_data(df, "mibao.csv")
+    save_data(df, "mibao_alldata.csv")
     # 保存注释内容
     sql = '''SELECT table_name, column_name, DATA_TYPE, COLUMN_COMMENT FROM information_schema.columns WHERE TABLE_SCHEMA = 'mibao_rds'; '''
     df = read_sql_query(sql)
@@ -358,6 +187,15 @@ def get_all_data_mibao():
 
 def process_data_tableau(df):
     pd.set_option('display.max_rows', 200)
+    # 特殊字符串的列预先处理下：
+    features = ['installment', 'commented', 'disposable_payment_enabled', 'face_check', 'face_live_check',
+                'hit_merchant_white_list', 'instalment_pay_enable', 'releted', 'hit_goods_white_list',
+                'full', 'service_enable', 'relet_appliable', 'buyouted', 'buyout_appliable',
+                'custom_lease', 'liveness_status', 'select_disposable_payment_enabled']
+    for feature in features:
+        df[feature] = df[feature].astype(str)
+        df[feature] = np.where(df[feature].str.contains('1', na=False), 1, 0)
+
     # 标注人工审核结果于target字段
     df['target'] = np.NAN
     df.loc[df['state_cao'].isin(['manual_check_fail']), 'target'] = 0
@@ -409,16 +247,102 @@ def process_data_tableau(df):
     for feature in features_time:
         df[feature] = pd.to_datetime(df[feature])
 
-    df['canceled_time_interval'] = (df['canceled_time'] - df['create_time']).dt.seconds / 60
-    df['manual_check_end_time_interval'] = (df['manual_check_end_time'] - df['create_time']).dt.seconds / 60
-    df['delivery_time_interval'] = (df['received_time'] - df['delivery_time']).dt.seconds / 60
+    # tableau 不支持64位数据
+    df['canceled_time_interval'] = (df['canceled_time'] - df['create_time']) / np.timedelta64(1, 'm')
+    df['manual_check_end_time_interval'] = (df['manual_check_end_time'] - df['create_time']) / np.timedelta64(1, 'm')
+    df['delivery_time_interval'] = (df['received_time'] - df['delivery_time']) / np.timedelta64(1, 'm')
+    df['canceled_time_interval'] = np.where(df['canceled_time_interval'].notnull(), round(df['canceled_time_interval']),
+                                            df['canceled_time_interval'])
+    df['manual_check_end_time_interval'] = np.where(df['manual_check_end_time_interval'].notnull(),
+                                                    round(df['manual_check_end_time_interval']),
+                                                    df['manual_check_end_time_interval'])
+    df['delivery_time_interval'] = np.where(df['delivery_time_interval'].notnull(), round(df['delivery_time_interval']),
+                                            df['delivery_time_interval'])
+
+    # 取phone前3位
+    df['phone'][df['phone'].isnull()] = df['phone_user'][df['phone'].isnull()]
+    df['phone'].fillna(value='0', inplace=True)
+    df['phone'][df['phone'].str.len() != 11] = '0'
+    df['phone'] = df['phone'].str.slice(0, 3)
+
+    # 数据处理
+    df['xiaobaiScore'] = df['order_detail'].map(
+        lambda x: json.loads(x).get('xiaobaiScore', 0) if isinstance(x, str) else 0)
+    df['zmxyScore'] = df['order_detail'].map(lambda x: json.loads(x).get('zmxyScore', 0) if isinstance(x, str) else '0')
+    df['xiaobaiScore'] = df['xiaobaiScore'].map(lambda x: float(x) if str(x) > '0' else 0)
+    df['zmxyScore'] = df['zmxyScore'].map(lambda x: float(x) if str(x) > '0' else 0)
+
+    # 只判断是否空值的特征处理
+    features_cat_null = ['fingerprint', 'recommend_code', 'company', 'company_phone', 'workplace', 'idcard_pros', ]
+    for feature in features_cat_null:
+        df[feature].fillna(0, inplace=True)
+        df[feature] = np.where(df[feature].isin(['', ' ', 0]), 0, 1)
 
 
-    # detail_json 暂不处理
-    df.drop(
-        ['tongdun_detail_json', 'bai_qi_shi_detail_json', 'guanzhu_detail_json', 'mibao_detail_json', 'cancel_reason',
-         'check_remark', 'mibao_remark'],
-        axis=1, inplace=True, errors='ignore')
+    df['head_image_url'].fillna(value=0, inplace=True)
+    df['head_image_url'] = df['head_image_url'].map(
+        lambda x: 0 if x == ("headImg/20171126/ll15fap1o16y9zfr0ggl3g8xptgo80k9jbnp591d.png") or x == 0 else 1)
+
+    # df['share_callback'] = np.where(df['share_callback'] < 1, 0, 1)
+    # df['tag'] = np.where(df['tag'].str.match('new'), 1, 0)
+    df['final_score'].fillna(value=0, inplace=True)
+
+    df['cert_no'][df['cert_no'].isnull()] = df['card_id'][df['cert_no'].isnull()]
+    # 有45个身份证号缺失但审核通过的订单， 舍弃不要。
+    # df = df[df['cert_no'].notnull()]
+
+    # 处理芝麻信用分 '>600' 更改成600
+    df['zmxy_score'][df['zmxy_score'].isin(['', ' '])] = 0
+    zmf = [0.0] * len(df)
+    xbf = [0.0] * len(df)
+    for row, detail in enumerate(df['zmxy_score'].tolist()):
+        # print(row, detail)
+        if isinstance(detail, type('hh')):
+            if '/' in detail:
+                score = detail.split('/')
+                xbf[row] = 0 if score[0] == '' else (float(score[0]))
+                zmf[row] = 0 if score[1] == '' else (float(score[1]))
+            # print(score, row)
+            elif '>' in detail:
+                zmf[row] = 600
+            else:
+                score = float(detail)
+                if score <= 200:
+                    xbf[row] = score
+                else:
+                    zmf[row] = score
+
+    df['zmf'] = zmf
+    df['xbf'] = xbf
+
+    df['zmf'][df['zmf'] == 0] = df['zmxyScore'][df['zmf'] == 0].astype(float)  # 26623
+    df['xbf'][df['xbf'] == 0] = df['xiaobaiScore'][df['xbf'] == 0].astype(float)  # 26623
+    df['zmf'].fillna(value=0, inplace=True)
+    df['xbf'].fillna(value=0, inplace=True)
+    # zmf_most = df['zmf'][df['zmf'] > 0].value_counts().index[0]
+    # xbf_most = df['xbf'][df['xbf'] > 0].value_counts().index[0]
+    df['zmf'][df['zmf'] == 0] = 600  # zmf_most
+    df['xbf'][df['xbf'] == 0] = 87.6  # xbf_most
+
+    # 根据身份证号增加性别和年龄 年龄的计算需根据订单创建日期计算
+    df['age'] = df['year'] - df['cert_no'].str.slice(6, 10).astype(int)
+    df['sex'] = df['cert_no'].str.slice(-2, -1).astype(int) % 2
+
+    # # 已使用的特征
+    # df.drop(['zmxy_score', 'card_id', 'phone_user', 'xiaobaiScore', 'zmxyScore', 'cert_no',
+    #          'bai_qi_shi_detail_json', 'guanzhu_detail_json', 'mibao_detail_json',
+    #          'order_detail'], axis=1,
+    #         inplace=True, errors='ignore')
+    # # 与其他特征关联度过高的特征
+    # df.drop(['lease_num', 'installment'], axis=1, inplace=True, errors='ignore')
+    #
+    # # merchant 违约率
+    # df.drop(['year', 'cancel_reason', 'check_remark', 'hit_merchant_white_list', 'mibao_result',
+    #          'tongdun_detail_json', 'order_number', 'joke', 'mibao_remark', 'tongdun_remark', 'bai_qi_shi_remark',
+    #          'guanzhu_remark'], axis=1, inplace=True, errors='ignore')
+
+    # 已处理的特征
+    df.drop(['cancel_reason', 'check_remark', 'bai_qi_shi_detail_json'], axis=1, inplace=True, errors='ignore')
     return df
 
 
@@ -541,16 +465,16 @@ def get_order_data(order_id=None):
               inplace=True)
     all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
 
-    # 特殊字符串的列预先处理下：
-    features = ['installment', 'commented', 'disposable_payment_enabled', 'face_check', 'face_live_check',
-                'hit_merchant_white_list']
-    for feature in features:
-        all_data_df[feature] = all_data_df[feature].astype(str)
-        all_data_df[feature] = np.where(all_data_df[feature].str.contains('1', na=False), 1, 0)
-
     # 去除测试数据和内部员工数据
     all_data_df = all_data_df[all_data_df['cancel_reason'].str.contains('测试', na=False) != True]
     all_data_df = all_data_df[all_data_df['check_remark'].str.contains('测试', na=False) != True]
+
+    all_data_df.drop(['order_number'], axis=1, inplace=True, errors='ignore')
+    # df.drop(['description'], axis=1, inplace=True, errors='ignore')
+    # detail_json 暂不处理
+    all_data_df.drop(
+        ['tongdun_detail_json', 'guanzhu_detail_json', 'mibao_detail_json', 'cert_no_json', 'mibao_remark'],
+        axis=1, inplace=True, errors='ignore')
 
     return all_data_df
 
@@ -571,9 +495,9 @@ def feature_analyse(df, feature):
 comment_df = pd.read_csv(os.path.join(data_path, "mibao_comment.csv"), encoding='utf-8', engine='python')
 
 # In[]
-df = pd.read_csv(os.path.join(data_path, "mibao.csv"), encoding='utf-8', engine='python')
+df = pd.read_csv(os.path.join(data_path, "mibao_alldata.csv"), encoding='utf-8', engine='python')
 df = process_data_tableau(df)
-df['canceled_time_interval'].value_counts()
+
 save_data(df, 'mibao.csv')
 feature_analyse(df, "canceled_time_interval")
 
@@ -585,7 +509,7 @@ order_features = ['id', 'create_time', 'finished_time', 'canceled_time', 'receiv
 
                   'credit_check_author', 'lease_term', 'commented',
                   'daily_rent', 'accident_insurance',
-                  'description', 'type', 'freeze_money', 'sign_state',
+                  'type', 'freeze_money', 'sign_state',
                   'ip',
                   'releted', 'service_enable', 'exchange_enable',
                   'relet_appliable', 'order_type', 'delivery_way', 'buyouted',

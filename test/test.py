@@ -5,6 +5,11 @@ import pandas as pd
 import numpy as np
 import datetime
 
+td = pd.Timedelta('3 days 2 hours 3 seconds')
+td.seconds   #小于1天的秒数 7203
+td.days  # 3
+td / np.timedelta64(1, 'm')  #转换成秒数 266403
+
 
 express_dict = {'EMS': 127,
 '中国邮政': 6,
