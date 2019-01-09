@@ -68,7 +68,7 @@ sql_tables = ['face_id', 'face_id_liveness', 'jimi_order_check_result', 'order',
 
 # 数据库表中的相关字段
 order_features = ['id', 'create_time', 'finished_time', 'canceled_time', 'received_time',
-                  'delivery_time', 'order_number', 'merchant_id', 'merchant_name', 'user_id', 'user_name', 'goods_name',
+                  'delivery_time', 'order_number', 'merchant_id', 'merchant_name', 'user_id', 'goods_name',
                   'state', 'cost', 'discount', 'installment', 'rem_pay_num', 'pay_num', 'added_service', 'first_pay',
                   'first_pay_time', 'full', 'billing_method', 'pay_type', 'user_receive_time', 'bounds_example_id',
                   'bounds_example_name', 'goods_type', 'cancel_reason', 'cancel_mode', 'paid_amount',
@@ -502,7 +502,7 @@ save_data(df, 'mibao.csv')
 feature_analyse(df, "canceled_time_interval")
 
 order_features = ['id', 'create_time', 'finished_time', 'canceled_time', 'received_time',
-                  'delivery_time', 'order_number', 'merchant_id', 'merchant_name', 'user_id', 'user_name', 'goods_name',
+                  'delivery_time', 'order_number', 'merchant_id', 'merchant_name', 'user_id', 'goods_name',
                   'state', 'cost', 'discount', 'installment', 'rem_pay_num', 'pay_num', 'added_service', 'first_pay',
                   'first_pay_time', 'full', 'billing_method', 'pay_type', 'user_receive_time', 'bounds_example_id',
                   'bounds_example_name', 'goods_type', 'cancel_reason', 'cancel_mode', 'paid_amount',
