@@ -75,7 +75,7 @@ order_features = ['id', 'create_time', 'finished_time', 'canceled_time', 'receiv
 
                   'credit_check_author', 'lease_term', 'commented',
                   'daily_rent', 'accident_insurance',
-                  'type', 'freeze_money', 'sign_state',
+                  'type', 'freeze_money',
                   'ip',
                   'releted', 'service_enable', 'exchange_enable',
                   'relet_appliable', 'order_type', 'delivery_way', 'buyouted',
@@ -83,7 +83,7 @@ order_features = ['id', 'create_time', 'finished_time', 'canceled_time', 'receiv
                   'device_type',
                   'stages', 'source', 'distance',
                   'disposable_payment_discount', 'disposable_payment_enabled',
-                  'custom_lease', 'activity_id', 'lease_num',
+                  'custom_lease', 'activity_id',
                   'credit_check_result', 'user_remark', 'original_daily_rent',
                   'merchant_store_id', 'deposit', 'deposit_type',
                   'hit_merchant_white_list', 'pick_up_merchant_store_id',
@@ -93,7 +93,7 @@ order_features = ['id', 'create_time', 'finished_time', 'canceled_time', 'receiv
                   'instalment_pay_enable', 'select_disposable_payment_enabled',
                   'settlement']
 
-user_features = ['id', 'create_time', 'head_image_url', 'recommend_code', 'regist_channel_type', 'share_callback',
+user_features = ['id', 'create_time', 'head_image_url','code', 'recommend_code', 'regist_channel_type', 'share_callback',
                  'tag', 'phone']
 face_id_features = ['user_id', 'status', 'liveness_status']
 user_credit_features = ['user_id', 'cert_no', 'workplace', 'idcard_pros', 'occupational_identity_type',
@@ -249,15 +249,11 @@ def process_data_tableau(df):
 
     # tableau 不支持64位数据
     df['canceled_time_interval'] = (df['canceled_time'] - df['create_time']) / np.timedelta64(1, 'm')
+    df['canceled_time_interval'] = df['canceled_time_interval'].fillna(0).astype(int)
     df['manual_check_end_time_interval'] = (df['manual_check_end_time'] - df['create_time']) / np.timedelta64(1, 'm')
+    df['manual_check_end_time_interval'] = df['manual_check_end_time_interval'].fillna(0).astype(int)
     df['delivery_time_interval'] = (df['received_time'] - df['delivery_time']) / np.timedelta64(1, 'm')
-    df['canceled_time_interval'] = np.where(df['canceled_time_interval'].notnull(), round(df['canceled_time_interval']),
-                                            df['canceled_time_interval'])
-    df['manual_check_end_time_interval'] = np.where(df['manual_check_end_time_interval'].notnull(),
-                                                    round(df['manual_check_end_time_interval']),
-                                                    df['manual_check_end_time_interval'])
-    df['delivery_time_interval'] = np.where(df['delivery_time_interval'].notnull(), round(df['delivery_time_interval']),
-                                            df['delivery_time_interval'])
+    df['delivery_time_interval'] = df['delivery_time_interval'].fillna(0).astype(int)
 
     # 取phone前3位
     df['phone'][df['phone'].isnull()] = df['phone_user'][df['phone'].isnull()]
@@ -266,14 +262,10 @@ def process_data_tableau(df):
     df['phone'] = df['phone'].str.slice(0, 3)
 
     # 数据处理
-    df['xiaobaiScore'] = df['order_detail'].map(
-        lambda x: json.loads(x).get('xiaobaiScore', 0) if isinstance(x, str) else 0)
-    df['zmxyScore'] = df['order_detail'].map(lambda x: json.loads(x).get('zmxyScore', 0) if isinstance(x, str) else '0')
-    df['xiaobaiScore'] = df['xiaobaiScore'].map(lambda x: float(x) if str(x) > '0' else 0)
-    df['zmxyScore'] = df['zmxyScore'].map(lambda x: float(x) if str(x) > '0' else 0)
+
 
     # 只判断是否空值的特征处理
-    features_cat_null = ['fingerprint', 'recommend_code', 'company', 'company_phone', 'workplace', 'idcard_pros', ]
+    features_cat_null = ['fingerprint', 'company', 'company_phone', 'workplace', 'idcard_pros', ]
     for feature in features_cat_null:
         df[feature].fillna(0, inplace=True)
         df[feature] = np.where(df[feature].isin(['', ' ', 0]), 0, 1)
@@ -292,6 +284,12 @@ def process_data_tableau(df):
     # df = df[df['cert_no'].notnull()]
 
     # 处理芝麻信用分 '>600' 更改成600
+    df['xiaobaiScore'] = df['order_detail'].map(
+        lambda x: json.loads(x).get('xiaobaiScore', 0) if isinstance(x, str) else 0)
+    df['zmxyScore'] = df['order_detail'].map(lambda x: json.loads(x).get('zmxyScore', 0) if isinstance(x, str) else '0')
+    df['xiaobaiScore'] = df['xiaobaiScore'].map(lambda x: float(x) if str(x) > '0' else 0)
+    df['zmxyScore'] = df['zmxyScore'].map(lambda x: float(x) if str(x) > '0' else 0)
+
     df['zmxy_score'][df['zmxy_score'].isin(['', ' '])] = 0
     zmf = [0.0] * len(df)
     xbf = [0.0] * len(df)
@@ -328,21 +326,14 @@ def process_data_tableau(df):
     df['age'] = df['create_time'].dt.year - df['cert_no'].str.slice(6, 10).astype(int)
     df['sex'] = df['cert_no'].str.slice(-2, -1).astype(int) % 2
 
-    # # 已使用的特征
-    # df.drop(['zmxy_score', 'card_id', 'phone_user', 'xiaobaiScore', 'zmxyScore', 'cert_no',
-    #          'bai_qi_shi_detail_json', 'guanzhu_detail_json', 'mibao_detail_json',
-    #          'order_detail'], axis=1,
-    #         inplace=True, errors='ignore')
-    # # 与其他特征关联度过高的特征
-    # df.drop(['lease_num', 'installment'], axis=1, inplace=True, errors='ignore')
-    #
-    # # merchant 违约率
-    # df.drop(['year', 'cancel_reason', 'check_remark', 'hit_merchant_white_list', 'mibao_result',
-    #          'tongdun_detail_json', 'order_number', 'joke', 'mibao_remark', 'tongdun_remark', 'bai_qi_shi_remark',
-    #          'guanzhu_remark'], axis=1, inplace=True, errors='ignore')
+
+    df['added_service'] = df['added_service'].str.count('insuranceName')
+    df['added_service'].fillna(0, inplace=True)
+    df['added_service'] = df['added_service'].astype(int)
+    df['recommend_code'].value_counts()
 
     # 已处理的特征
-    df.drop(['cancel_reason', 'check_remark', 'bai_qi_shi_detail_json'], axis=1, inplace=True, errors='ignore')
+    df.drop(['cancel_reason', 'check_remark', 'bai_qi_shi_detail_json', 'zmxy_score', 'xiaobaiScore', 'zmxyScore'], axis=1, inplace=True, errors='ignore')
     return df
 
 
@@ -496,33 +487,11 @@ comment_df = pd.read_csv(os.path.join(data_path, "mibao_comment.csv"), encoding=
 
 # In[]
 df = pd.read_csv(os.path.join(data_path, "mibao_alldata.csv"), encoding='utf-8', engine='python')
+all_data_df = df.copy()
 df = process_data_tableau(df)
 
 save_data(df, 'mibao.csv')
-feature_analyse(df, "canceled_time_interval")
-
-order_features = ['id', 'create_time', 'finished_time', 'canceled_time', 'received_time',
-                  'delivery_time', 'order_number', 'merchant_id', 'merchant_name', 'user_id', 'goods_name',
-                  'state', 'cost', 'discount', 'installment', 'rem_pay_num', 'pay_num', 'added_service', 'first_pay',
-                  'first_pay_time', 'full', 'billing_method', 'pay_type', 'user_receive_time', 'bounds_example_id',
-                  'bounds_example_name', 'goods_type', 'cancel_reason', 'cancel_mode', 'paid_amount',
-
-                  'credit_check_author', 'lease_term', 'commented',
-                  'daily_rent', 'accident_insurance',
-                  'type', 'freeze_money', 'sign_state',
-                  'ip',
-                  'releted', 'service_enable', 'exchange_enable',
-                  'relet_appliable', 'order_type', 'delivery_way', 'buyouted',
-                  'buyout_appliable', 'mac_address',
-                  'device_type',
-                  'stages', 'source', 'distance',
-                  'disposable_payment_discount', 'disposable_payment_enabled',
-                  'custom_lease', 'activity_id', 'lease_num',
-                  'credit_check_result', 'user_remark', 'original_daily_rent',
-                  'merchant_store_id', 'deposit', 'deposit_type',
-                  'hit_merchant_white_list', 'pick_up_merchant_store_id',
-                  'fingerprint',
-                  'hit_goods_white_list', 'buyout_coefficient',
-                  'merchant_credit_check_result', 'disposable_payment_limit_day',
-                  'instalment_pay_enable', 'select_disposable_payment_enabled',
-                  'settlement']
+feature_analyse(df, "recommend_code")
+'''
+df = all_data_df.copy()
+'''
