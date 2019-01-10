@@ -325,7 +325,7 @@ def process_data_tableau(df):
     df['xbf'][df['xbf'] == 0] = 87.6  # xbf_most
 
     # 根据身份证号增加性别和年龄 年龄的计算需根据订单创建日期计算
-    df['age'] = df['year'] - df['cert_no'].str.slice(6, 10).astype(int)
+    df['age'] = df['create_time'].dt.year - df['cert_no'].str.slice(6, 10).astype(int)
     df['sex'] = df['cert_no'].str.slice(-2, -1).astype(int) % 2
 
     # # 已使用的特征

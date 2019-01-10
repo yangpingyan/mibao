@@ -92,7 +92,7 @@ train_date = datetime.now() + timedelta(days=29)
 train_date = train_date.strftime("%Y-%m-%d")
 print(train_date)
 passengers = ['张桦', '杨平言', '杨擎天']
-order_number_list = [17]
+order_number_list = [20]
 
 # 加载查询信息
 browser.cookies.add({"_jc_save_fromStation": starts_city})
