@@ -71,7 +71,7 @@ order_features = ['id', 'create_time', 'finished_time', 'canceled_time', 'receiv
                   'delivery_time', 'order_number', 'merchant_id', 'merchant_name', 'user_id', 'goods_name',
                   'state', 'cost', 'discount', 'installment', 'rem_pay_num', 'pay_num', 'added_service', 'first_pay',
                   'first_pay_time', 'full', 'billing_method', 'pay_type', 'user_receive_time', 'bounds_example_id',
-                  'bounds_example_name', 'goods_type', 'cancel_reason', 'cancel_mode', 'paid_amount',
+                  'goods_type', 'cancel_reason', 'cancel_mode', 'paid_amount',
 
                   'credit_check_author', 'lease_term', 'commented',
                   'daily_rent', 'accident_insurance',
@@ -93,11 +93,12 @@ order_features = ['id', 'create_time', 'finished_time', 'canceled_time', 'receiv
                   'instalment_pay_enable', 'select_disposable_payment_enabled',
                   'settlement']
 
-user_features = ['id', 'create_time', 'head_image_url','code', 'recommend_code', 'regist_channel_type', 'share_callback',
+user_features = ['id', 'create_time', 'head_image_url', 'code', 'recommend_code', 'regist_channel_type',
+                 'share_callback',
                  'tag', 'phone']
 face_id_features = ['user_id', 'status', 'liveness_status']
 user_credit_features = ['user_id', 'cert_no', 'workplace', 'idcard_pros', 'occupational_identity_type',
-                        'company_phone', 'cert_no_expiry_date', 'cert_no_json', ]
+                        'company_phone', 'cert_no_json', ]
 user_device_features = ['user_id', 'device_type', 'regist_device_info', 'regist_useragent', 'ingress_type']
 order_express_features = ['order_id', 'zmxy_score', 'card_id', 'phone', 'company']
 order_detail_features = ['order_id', 'order_detail']
@@ -108,17 +109,17 @@ user_zhima_cert_features = ['user_id', 'status']
 jimi_order_check_result_features = ['order_id', 'check_remark']
 credit_audit_order_features = ['order_id', 'create_time', 'admin_name', 'state', 'remark', 'manual_check_start_time',
                                'manual_check_end_time', 'order_cancle_time']
-order_xinyongzu_features = []
-user_bonus_features = []
+user_bonus_features = ['id', 'price']
+order_phone_book_features = ['order_id', 'phone_book']
+
+order_xinyongzu_features = ['order_number', 'cert_no', 'mobile', 'house', 'zm_grade', 'zm_grade', 'zm_risk', 'zm_face']
+face_id_liveness_features = ['order_id', 'status']
+user_third_party_account_features = ['user_id', 'create_time']
 user_login_log_features = []
 user_login_record_features = []
 user_longitude_latitude_feature = []
 user_wx_account_features = []
 xiaobai_features = []
-user_third_party_account_features = ['user_id', 'create_time']
-face_id_liveness_features = ['order_id', 'status']
-order_phone_book_features = ['order_id', 'phone_book']
-risk_white_list_features = ['user_id']
 
 # order中的state 分类
 pass_state_values = ['pending_receive_goods', 'running', 'lease_finished', 'pending_send_goods',
@@ -148,7 +149,6 @@ mibao_ml_features = ['merchant_id', 'pay_num', 'added_service',
                      'price', 'cost',
                      'phone_book', 'face_live_check',
                      'bounds_example_id',
-                     # 'account_num' #用到了事后数据，需处理下
                      # 'deposit', 'type',  #有押金的审核肯定通过
                      ]
 
@@ -172,6 +172,11 @@ def read_data(table_name, features, field='order_id', field_value=None):
     df = read_sql_query(sql)
     print(table_name, time.clock() - starttime)
     return df
+
+
+'''
+get_all_data_mibao()
+'''
 
 
 def get_all_data_mibao():
@@ -263,13 +268,11 @@ def process_data_tableau(df):
 
     # 数据处理
 
-
     # 只判断是否空值的特征处理
     features_cat_null = ['fingerprint', 'company', 'company_phone', 'workplace', 'idcard_pros', ]
     for feature in features_cat_null:
         df[feature].fillna(0, inplace=True)
         df[feature] = np.where(df[feature].isin(['', ' ', 0]), 0, 1)
-
 
     df['head_image_url'].fillna(value=0, inplace=True)
     df['head_image_url'] = df['head_image_url'].map(
@@ -326,14 +329,14 @@ def process_data_tableau(df):
     df['age'] = df['create_time'].dt.year - df['cert_no'].str.slice(6, 10).astype(int)
     df['sex'] = df['cert_no'].str.slice(-2, -1).astype(int) % 2
 
-
     df['added_service'] = df['added_service'].str.count('insuranceName')
     df['added_service'].fillna(0, inplace=True)
     df['added_service'] = df['added_service'].astype(int)
     df['recommend_code'].value_counts()
 
     # 已处理的特征
-    df.drop(['cancel_reason', 'check_remark', 'bai_qi_shi_detail_json', 'zmxy_score', 'xiaobaiScore', 'zmxyScore'], axis=1, inplace=True, errors='ignore')
+    df.drop(['cancel_reason', 'check_remark', 'bai_qi_shi_detail_json', 'zmxy_score', 'xiaobaiScore', 'zmxyScore',
+             'phone_user'], axis=1, inplace=True, errors='ignore')
     return df
 
 
@@ -349,6 +352,7 @@ def get_order_data(order_id=None):
     order_id = None
     user_id = None
     order_number = None
+    bounds_example_id = None
     print("读取order表")
     order_df = read_data('order', order_features, 'id', order_id)
     if len(order_df) == 0:
@@ -357,6 +361,7 @@ def get_order_data(order_id=None):
     if order_id != None:
         user_id = order_df.at[0, 'user_id']
         order_number = order_df.at[0, 'order_number']
+        bounds_example_id = order_df.at[0, 'bounds_example_id']
     all_data_df = order_df.copy()
 
     # 若state字段有新的状态产生， 抛出异常
@@ -376,7 +381,7 @@ def get_order_data(order_id=None):
     all_data_df = pd.merge(all_data_df, face_id_df, on='user_id', how='left')
 
     # 读取并处理表 face_id_liveness
-    face_id_liveness_df = read_data('face_id_liveness', ['order_id', 'status'], 'order_id', order_id)
+    face_id_liveness_df = read_data('face_id_liveness', face_id_liveness_features, 'order_id', order_id)
     face_id_liveness_df.rename(columns={'status': 'face_live_check'}, inplace=True)
     all_data_df = pd.merge(all_data_df, face_id_liveness_df, on='order_id', how='left')
 
@@ -415,7 +420,7 @@ def get_order_data(order_id=None):
 
         return len(set(name_list))
 
-    order_phone_book_df = read_data('order_phone_book', ['order_id', 'phone_book'], 'order_id', order_id)
+    order_phone_book_df = read_data('order_phone_book', order_phone_book_features, 'order_id', order_id)
     order_phone_book_df['phone_book'] = order_phone_book_df['phone_book'].map(count_name_nums)
 
     all_data_df = pd.merge(all_data_df, order_phone_book_df, on='order_id', how='left')
@@ -456,11 +461,23 @@ def get_order_data(order_id=None):
               inplace=True)
     all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
 
+    # 读取并处理表 user_bonus
+    all_data_df['bounds_example_id'].fillna(0, inplace=True)
+    all_data_df['bounds_example_id'] = all_data_df['bounds_example_id'].astype(int)
+    df = read_data('user_bonus', user_bonus_features, 'id', bounds_example_id)
+    df.rename(columns={'id': 'bounds_example_id'}, inplace=True)
+    all_data_df = pd.merge(all_data_df, df, on='bounds_example_id', how='left')
+
+    # 读取并处理表 order_xinyongzu
+    df = read_data('order_xinyongzu', order_xinyongzu_features, 'order_number', order_number)
+    df.rename(columns={'cert_no': 'cert_no_xinyongzu'}, inplace=True)
+    all_data_df = pd.merge(all_data_df, df, on='order_number', how='left')
+
     # 去除测试数据和内部员工数据
     all_data_df = all_data_df[all_data_df['cancel_reason'].str.contains('测试', na=False) != True]
     all_data_df = all_data_df[all_data_df['check_remark'].str.contains('测试', na=False) != True]
 
-    all_data_df.drop(['order_number'], axis=1, inplace=True, errors='ignore')
+    all_data_df.drop(['order_number', 'bounds_example_id'], axis=1, inplace=True, errors='ignore')
     # df.drop(['description'], axis=1, inplace=True, errors='ignore')
     # detail_json 暂不处理
     all_data_df.drop(
@@ -491,7 +508,7 @@ all_data_df = df.copy()
 df = process_data_tableau(df)
 
 save_data(df, 'mibao.csv')
-feature_analyse(df, "recommend_code")
+feature_analyse(df, "bounds_example_name")
 '''
 df = all_data_df.copy()
 '''
