@@ -91,6 +91,10 @@ class SpiderTianyangcha(object):
                       `link` varchar(255) DEFAULT NULL COMMENT '公司信息获取的链接地址',
                       `from_table` varchar(50) DEFAULT NULL COMMENT '公司名称来源哪张表',
                       `id_related` int(10) unsigned DEFAULT NULL COMMENT '表对应的id',
+                      `score` varchar(50) DEFAULT NULL COMMENT '天眼评分',
+                      `risk_own_sum` varchar(50) DEFAULT NULL COMMENT '自身风险个数',
+                      `risk_surrounding_sum` varchar(50) DEFAULT NULL COMMENT '周边风险个数',
+                      `warning_sum` varchar(50) DEFAULT NULL COMMENT '预警提醒个数',
                       PRIMARY KEY (`id`)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8'''
 
@@ -112,9 +116,9 @@ class SpiderTianyangcha(object):
                                taxpayer_number, industry, operating_period, approval_date,
                                taxpayer_qualification, staff_size, contributed_capital,
                                registration_office, insurance_contributors, english_name,
-                               registered_address, business_scope, link, from_table, id_related ) 
-                               VALUES('{}','{}','{}','{}','{}','{}','{}','{}','{}','{}','{}','{}','{}',
-                               '{}','{}','{}','{}','{}','{}','{}','{}','{}','{}','{}','{}','{}','{}','{}','{}') ; '''
+                               registered_address, business_scope, link, from_table, id_related, score, risk_own_sum, risk_surrounding_sum, warning_sum ) 
+                               VALUES("{}","{}","{}","{}","{}","{}","{}","{}","{}","{}","{}","{}","{}",
+                               "{}","{}","{}","{}","{}","{}","{}","{}","{}","{}","{}","{}","{}","{}","{}","{}","{}","{}","{}","{}") ; '''
         try:
             self.conn.cursor().execute(
                 sql.format(self.table_name, data.get('公司名称'), data.get('电话'), data.get('邮箱'), data.get('网址'),
@@ -123,7 +127,7 @@ class SpiderTianyangcha(object):
                            data.get('公司类型'), data.get('纳税人识别号'), data.get('行业'), data.get('营业期限'), data.get('核准日期'),
                            data.get('纳税人资质'), data.get('人员规模'), data.get('实缴资本'), data.get('登记机关'), data.get('参保人数'),
                            data.get('英文名称'), data.get('注册地址'), data.get('经营范围'), data.get('link'), self.from_table,
-                           data.get('id_related')))
+                           data.get('id_related'), data.get('评分'), data.get('自身风险'), data.get('周边风险'), data.get('预警提醒')))
         except Exception as e:
             self.conn.rollback()
             print("插入信息失败，原因：", e)
@@ -293,6 +297,10 @@ class SpiderTianyangcha(object):
                 base_table['注册资本'] = rows1[1].find_elements_by_tag_name('td')[1].text.split('\n')[1]
             except:
                 base_table['注册资本'] = rows1[1].find_elements_by_tag_name('td')[1].text.split('\n')[0]
+            try:
+                base_table['注册资本'] = re.search(r'\d+', base_table['注册资本'])[0] + '万人民币'
+            except:
+                pass
 
             # 检测注册资本是否需要解密
             try:
@@ -357,7 +365,22 @@ class SpiderTianyangcha(object):
                             pass
 
                     base_table[item] = tmp
+            try:
+                score = base_info_tables[1].find_element_by_tag_name('img').get_attribute('alt')
+                base_table['评分'] = re.search(r'\d+', score)[0]
+            except:
+                pass
 
+            try:
+                risk_elements = self.browser.find_elements(By.CLASS_NAME, "tag-risk-count")
+                base_table['自身风险'] = risk_elements[0].text
+                base_table['周边风险'] = risk_elements[1].text
+                base_table['预警提醒'] = risk_elements[2].text
+            except:
+                pass
+
+
+            # _container_baseInfo > table.table.-striped-col.-border-top-none > tbody > tr:nth-child(1) > td.sort-bg > img
         return base_table
 
     def get_companys_tyc(self):
