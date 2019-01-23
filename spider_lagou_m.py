@@ -25,31 +25,10 @@ except:
     sys.reload()
     sys.setdefaultencoding('utf-8')
 
-
-
-def get_uuid():
-    return str(uuid.uuid4())
-
-
-class SpiderLagou(object):
-    def __init__(self):
-        try:
-            workdir = os.path.dirname(os.path.realpath(__file__))
-        except:
-            workdir = os.getcwd()
-        self.workdir = workdir
-
-        sql_file = os.path.join(workdir, 'sql', 'sql_mibao_spider.json')
-        ssh_pkey = os.path.join(workdir, 'sql', 'sql_pkey')
-        self.conn = sql_connect('enterprise', sql_file, ssh_pkey)
-        self.create_table()
-
-    # 创建表格的函数，表格名称按照时间和关键词命名
-    def create_table(self):
-        # create_time = datetime.datetime.strftime(datetime.datetime.now(), "%Y%m%d")
-        self.table_name = "lagou"
-
-        sql = '''CREATE TABLE if not exists `{tbname}`(
+# Initial parameters
+data_base = 'enterprise'
+table_name = "lagou"
+create_table_sql = '''CREATE TABLE if not exists `{}`(
             `id` int(11) NOT NULL AUTO_INCREMENT,
             `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
             `company_name` varchar(50) UNIQUE ,
@@ -57,120 +36,111 @@ class SpiderLagou(object):
             `company_id` char(20),
             `job_create_time` char(20),
             PRIMARY KEY (`id`)
-            )'''
-        try:
-            self.conn.cursor().execute(sql.format(tbname=self.table_name))
-        except Exception as e:
-            print("创建表格失败，表格可能已经存在！", e)
-        else:
-            self.conn.commit()
+            )'''.format(table_name)
 
-    # 插入信息函数，每次插入一条信息，插入信息失败会回滚
-    def insert_data(self, data: dict):
-        '''插入数据，不成功就回滚操作'''
-        sql = '''INSERT INTO `{}`(company_name, job_site, company_id, job_create_time) VALUES('{}','{}','{}','{}')'''
-        try:
+# 插入信息函数，每次插入一条信息，插入信息失败会回滚
+def insert_data_df(conn, df: pd.DataFrame):
+    '''插入数据，不成功就回滚操作'''
+    df.reset_index(inplace=True)
+    sql = '''INSERT INTO `{}`(company_name, job_site, company_id, job_create_time) VALUES('{}','{}','{}','{}')'''
+    try:
+        for row in range(0, len(df)):
+            conn.cursor().execute(
+                sql.format(table_name, df.at[row, 'company_name'], df.at[row, 'job_site'],
+                           df.at[row, 'company_id'], df.at[row, 'job_create_time']))
 
-            self.conn.cursor().execute(
-                sql.format(self.table_name, data.get('company_name'), data.get('job_site'), data.get('company_id'),
-                           data.get('job_create_time')))
+    except Exception as e:
+        conn.rollback()
+        print("插入信息失败，原因：", e)
+    else:
+        conn.commit()
+        # print("成功插入一条信息")
 
-        except Exception as e:
-            self.conn.rollback()
-            print("插入信息失败，原因：", e)
-        else:
-            self.conn.commit()
-            # print("成功插入一条信息")
+def get_companys(conn, table_name):
+    df = pd.read_sql('''SELECT `company_name` FROM `{}` ;'''.format(table_name), conn)
+    company_list = df['company_name'].values.tolist()
+    return company_list
 
-    # 插入信息函数，每次插入一条信息，插入信息失败会回滚
-    def insert_data_df(self, df: pd.DataFrame):
-        '''插入数据，不成功就回滚操作'''
-        df.reset_index(inplace=True)
-        sql = '''INSERT INTO `{}`(company_name, job_site, company_id, job_create_time) VALUES('{}','{}','{}','{}')'''
-        try:
-            for row in range(0, len(df)):
-                self.conn.cursor().execute(
-                    sql.format(self.table_name, df.at[row, 'company_name'], df.at[row, 'job_site'],
-                               df.at[row, 'company_id'], df.at[row, 'job_create_time']))
+def init_cookies():
+    """
+    return the cookies after your first visit
+    """
+    headers = {
+        'Upgrade-Insecure-Requests': '1',
+        'Host': 'm.lagou.com',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 11_0 like Mac OS X) AppleWebKit/604.1.38 (KHTML, like Gecko) Version/11.0 Mobile/15A372 Safari/604.1',
+        'DNT': '1',
+        'Cache-Control': 'max-age=0',
+        'Referrer Policy': 'no-referrer-when-downgrade',
+    }
+    url = 'https://m.lagou.com/search.html'
+    response = requests.get(url, headers=headers, timeout=10)
 
-        except Exception as e:
-            self.conn.rollback()
-            print("插入信息失败，原因：", e)
-        else:
-            self.conn.commit()
-            # print("成功插入一条信息")
+    return response.cookies
 
-    def get_companys(self):
-        df = pd.read_sql('''SELECT `company_name` FROM `{}` ;'''.format(self.table_name), self.conn)
-        company_list = df['company_name'].values.tolist()
-        return company_list
+def get_max_pageNo(city, position_name):
+    """
+    return the max page number of a specific job
+    """
+    request_url = 'https://m.lagou.com/search.json?city={}&positionName={}&pageNo=1&pageSize=15'.format(parse.quote(city), parse.quote(position_name))
+    headers = {
+        'Accept': 'application/json',
+        'Accept-Encoding': 'gzip, deflate, sdch',
+        'Host': 'm.lagou.com',
+        'Referer': 'https://m.lagou.com/search.html',
+        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 8_0 like Mac OS X) AppleWebKit/600.1.3 (KHTML, like Gecko) '
+                      'Version/8.0 Mobile/12A4345d Safari/600.1.4',
+        'X-Requested-With': 'XMLHttpRequest',
+        'Connection': 'keep-alive'
+    }
+    response = requests.get(request_url, headers=headers, cookies=init_cookies(), timeout=10)
+    print("Getting data from %s successfully. URL: " % position_name + request_url)
+    if response.status_code == 200:
+        max_page_no = int(int(response.json()['content']['data']['page']['totalCount']) / 15 + 1)
 
-    def close(self):
-        '''关闭游标和断开链接，数据全部插入后必须执行这个操作'''
-        self.conn.cursor().close()
-        self.conn.close()
+        return max_page_no
+    elif response.status_code == 403:
+        print('request is forbidden by the server...')
+        return 0
+    else:
+        print(response.status_code)
+        return 0
 
-    def get_max_pageNo(positionName):
-        """
-        return the max page number of a specific job
-        """
-        request_url = 'https://m.lagou.com/search.json?city=%E5%85%A8%E5%9B%BD&positionName=' + parse.quote(
-            positionName) + '&pageNo=1&pageSize=15'
-        headers = {
-            'Accept': 'application/json',
-            'Accept-Encoding': 'gzip, deflate, sdch',
-            'Host': 'm.lagou.com',
-            'Referer': 'https://m.lagou.com/search.html',
-            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 8_0 like Mac OS X) AppleWebKit/600.1.3 (KHTML, like Gecko) '
-                          'Version/8.0 Mobile/12A4345d Safari/600.1.4',
-            'X-Requested-With': 'XMLHttpRequest',
-            'Connection': 'keep-alive'
-        }
-        response = requests.get(request_url, headers=headers, cookies=init_cookies(), timeout=10)
-        print("Getting data from %s successfully. URL: " % positionName + request_url)
-        if response.status_code == 200:
-            max_page_no = int(int(response.json()['content']['data']['page']['totalCount']) / 15 + 1)
 
-            return max_page_no
-        elif response.status_code == 403:
-            print('request is forbidden by the server...')
-            return 0
-        else:
-            print(response.status_code)
-            return 0
+try:
+    workdir = os.path.dirname(os.path.realpath(__file__))
+except:
+    workdir = os.getcwd()
 
-    def init_cookies(self):
-        """
-        return the cookies after your first visit
-        """
-        headers = {
-            'Upgrade-Insecure-Requests': '1',
-            'Host': 'm.lagou.com',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
-            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 11_0 like Mac OS X) AppleWebKit/604.1.38 (KHTML, like Gecko) Version/11.0 Mobile/15A372 Safari/604.1',
-            'DNT': '1',
-            'Cache-Control': 'max-age=0',
-            'Referrer Policy': 'no-referrer-when-downgrade',
-        }
-        url = 'https://m.lagou.com/search.html'
-        response = requests.get(url, headers=headers, timeout=10)
+sql_file = os.path.join(workdir, 'sql', 'sql_mibao_spider.json')
+ssh_pkey = os.path.join(workdir, 'sql', 'sql_pkey')
+conn = sql_connect(data_base, sql_file, ssh_pkey)
+# 创建表格
+try:
+    conn.cursor().execute(create_table_sql)
+except Exception as e:
+    print("创建表格失败，表格可能已经存在！", e)
+else:
+    conn.commit()
 
-        return response.cookies
+max_page_number = get_max_pageNo()
+print("There are %s pages, approximately %s records in total.", max_page_number, max_page_number * 15)
 
-    def crawl_jobs(positionName):
+# init cookies
+cookie = init_cookies()
+
+class SpiderLagou(object):
+
+    def crawl_lagou(city, position_name):
         """
         crawl the job info from lagou H5 web pages
         """
-        max_page_number = self.get_max_pageNo(positionName)
-        print("%s, There are %s pages, approximately %s records in total.", positionName, max_page_number,
-              max_page_number * 15)
 
-        # init cookies
-        cookie = self.init_cookies()
-        # cookie = dict(
-        #     cookies_are='')
-        parse.quote('杭州')
         for i in range(1, max_page_number + 1):
+            request_url = 'https://m.lagou.com/search.json?city={}&positionName={}&pageNo=1&pageSize=15'.format(
+                parse.quote(city), parse.quote(position_name))
+
             request_url = 'https://m.lagou.com/search.json?city=%E5%85%A8%E5%9B%BD&positionName=' + parse.quote(
                 positionName) + '&pageNo=' + str(i) + '&pageSize=15'
             headers = {
@@ -196,14 +166,7 @@ class SpiderLagou(object):
                     items = response.json()['content']['data']['page']['result']
                     if len(items) > 0:
                         for each_item in items:
-                            if "今天" in each_item['createTime']:
-                                each_item['createTime'] = re.sub("今天.*", str(datetime.date.today()),
-                                                                 each_item['createTime'])
-                            elif "昨天" in each_item['createTime']:
-                                today = datetime.date.today()
-                                oneday = datetime.timedelta(days=1)
-                                yesterday = today - oneday
-                                each_item['createTime'] = re.sub("昨天.*", str(yesterday), each_item['createTime'])
+
 
                             JOB_DATA.append([each_item['positionId'], each_item['positionName'], each_item['city'],
                                              each_item['createTime'], each_item['salary'], each_item['companyId'],
@@ -249,21 +212,13 @@ class SpiderLagou(object):
         for position in html_json['content']['positionResult']['result']:
             df.loc[row] = [position['companyFullName'], position['city'], position['companyId'], position['createTime']]
             row += 1
-            # if position['companyFullName'] not in companys_list:
-            #     data = {}
-            #     data['company_name'] = position['companyFullName']
-            #     data['job_site'] = position['city']
-            #     data['company_id'] = position['companyId']
-            #     data['job_create_time'] = position['createTime']
-            #     print(data)
-            #     self.insert_data(data)
-            #     companys_list.append(position['companyFullName'])
+
         response.close()
 
         return df
 
     def main(self, city, keyword):
-        companys_list = self.get_companys()
+        companys_list = get_companys()
         none_added_count = 0
         start_page = 1
         for n in range(start_page, start_page + 1000):
@@ -291,7 +246,8 @@ class SpiderLagou(object):
                 break
 
             time.sleep(round(random.uniform(4, 6), 2))
-        self.close()
+        conn.cursor().close()
+        conn.close()
 
 
 if __name__ == "__main__":
