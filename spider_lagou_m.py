@@ -130,7 +130,6 @@ citys = ['杭州', '上海', '南京', '苏州', '宁波', '温州', '湖州', '
          '无锡', '常州', '徐州', '南通', '淮安', '盐城', '扬州', '镇江', '泰州', '宿迁', '连云港']
 for city in citys:
     print(city)
-    city = '杭州'
     position_name = ' '
     max_page_number = get_max_pageNo(city, position_name)
     print("There are {} pages, approximately {} records in total.".format(max_page_number, max_page_number * 15))
@@ -183,7 +182,6 @@ for city in citys:
                         none_added_count += 1
 
                     print(city, len(df), " companys added")
-
                     print('crawling page %d done...' % page_no)
                     time.sleep(random.randint(3, 6))
                 else:
