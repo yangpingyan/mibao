@@ -123,7 +123,7 @@ class SpiderTianyangcha(object):
             self.conn.cursor().execute(
                 sql.format(self.table_name, data.get('公司名称'), data.get('电话'), data.get('邮箱'), data.get('网址'),
                            data.get('地址'), data.get('简介'), data.get('法人'), data.get('注册资本'), data.get('成立日期'),
-                           data.get('状态'), data.get('工商注册号'), data.get('组织机构代码'), data.get('统一社会信用代码'),
+                           data.get('经营状态'), data.get('工商注册号'), data.get('组织机构代码'), data.get('统一社会信用代码'),
                            data.get('公司类型'), data.get('纳税人识别号'), data.get('行业'), data.get('营业期限'), data.get('核准日期'),
                            data.get('纳税人资质'), data.get('人员规模'), data.get('实缴资本'), data.get('登记机关'), data.get('参保人数'),
                            data.get('英文名称'), data.get('注册地址'), data.get('经营范围'), data.get('link'), self.from_table,
