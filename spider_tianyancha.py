@@ -122,7 +122,7 @@ class SpiderTianyangcha(object):
         try:
             self.conn.cursor().execute(
                 sql.format(self.table_name, data.get('公司名称'), data.get('电话'), data.get('邮箱'), data.get('网址'),
-                           data.get('地址'), data.get('简介'), data.get('法人'), data.get('注册资本'), data.get('注册时间'),
+                           data.get('地址'), data.get('简介'), data.get('法人'), data.get('注册资本'), data.get('成立日期'),
                            data.get('状态'), data.get('工商注册号'), data.get('组织机构代码'), data.get('统一社会信用代码'),
                            data.get('公司类型'), data.get('纳税人识别号'), data.get('行业'), data.get('营业期限'), data.get('核准日期'),
                            data.get('纳税人资质'), data.get('人员规模'), data.get('实缴资本'), data.get('登记机关'), data.get('参保人数'),
@@ -293,6 +293,7 @@ class SpiderTianyangcha(object):
             if (base_table['法人'] in ['未公开']):
                 print("信息未公开， 放弃爬取")
                 return base_table
+            '''
             try:
                 base_table['注册资本'] = rows1[1].find_elements_by_tag_name('td')[1].text.split('\n')[1]
             except:
@@ -331,14 +332,20 @@ class SpiderTianyangcha(object):
                 base_table['状态'] = rows1[3].find_elements_by_tag_name('td')[0].text.split('\n')[1]
             except:
                 base_table['状态'] = rows1[1].find_elements_by_tag_name('td')[3].text.split('\n')[0]
-
+'''
             # 第二个表
             rows2 = base_info_tables[1].find_elements_by_tag_name('tr')
             base_info_list = []
             for row in rows2:
                 for td in row.find_elements_by_tag_name('td'):
                     if td.text != '':
-                        base_info_list.append(td.text)
+                        tmp = td.text
+                        try:
+                            td.find_element_by_class_name('tyc-num')
+                            tmp = tmp.translate(self.trans_map)
+                        except:
+                            pass
+                        base_info_list.append(tmp)
 
             if len(base_info_list) % 2 == 0:
                 for i in range(int(len(base_info_list) / 2)):
@@ -347,24 +354,20 @@ class SpiderTianyangcha(object):
                 print('base_table_2（公司基本信表2）行数不为偶数，请检查代码！')
 
             # 数字解密, 先检查日期是否是正确数字
-            # decode_list = ['注册资本', '注册时间', '核准日期']
-            decode_list.sort()
-            for item in decode_list:
+            # decode_list = ['注册资本', '成立日期', '核准日期']
+            for item in ['成立日期', '核准日期']:
                 if base_table.get(item) is not None:
-                    tmp = base_table.get(item).translate(self.trans_map)
-                    if item in ['注册时间', '核准日期']:
-                        try:
-                            if tmp[:2] not in ['19', '20']:
-                                print("解密出错，退出重先爬取。。。")
-                                self.create_woff_map()
-                                tmp = base_table.get(item).translate(self.trans_map)
-                            else:
-                                pass
-
-                        except:
+                    try:
+                        if base_table.get(item)[:2] not in ['19', '20']:
+                            print("解密出错，退出重先爬取。。。")
+                            self.create_woff_map()
+                            base_table[item] = base_table.get(item).translate(self.trans_map)
+                        else:
                             pass
 
-                    base_table[item] = tmp
+                    except:
+                        pass
+
             try:
                 score = base_info_tables[1].find_element_by_tag_name('img').get_attribute('alt')
                 base_table['评分'] = re.search(r'\d+', score)[0]
@@ -493,7 +496,7 @@ class SpiderTianyangcha(object):
             else:
                 print(base_table)
                 try:
-                    if base_table['注册时间'][:2] in ['19', '20']:
+                    if base_table['成立日期'][:2] in ['19', '20']:
                         self.insert_data(base_table)
                     else:
                         print("解密出错，退出重先爬取。。。")
@@ -516,7 +519,7 @@ class SpiderTianyangcha(object):
         if base_table is not None:
             print(base_table)
             try:
-                if base_table['注册时间'][:2] in ['19', '20']:
+                if base_table['成立日期'][:2] in ['19', '20']:
                     self.insert_data(base_table)
                     df = pd.read_sql('''select * from tianyancha t WHERE t.company_name = '{}';'''.format(company),
                                      self.conn)
