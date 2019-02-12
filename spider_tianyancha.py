@@ -55,7 +55,7 @@ class SpiderTianyangcha(object):
                                         chrome_options=options)
         self.create_woff_map()
         self.login()
-
+        wait_key = input()
     # 创建表格的函数，表格名称按照时间和关键词命名
     def create_table(self):
         self.table_name = "tianyancha"

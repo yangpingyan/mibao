@@ -12,7 +12,6 @@ import os
 import pandas as pd
 import uuid
 
-
 city_to_num_dict = {'厚街镇': '030830', '彭水县': '063100', '德宏': '251600', '顺德区': '030602', '黔西南': '260800', '阿勒泰': '311300',
                     '美国': '363001', '巩义市': '170208', '高陵县': '200213', '大同': '210400', '滨湖区': '070404', '平度市': '120309',
                     '九江': '130300', '四平': '240600', '肯尼亚': '364006', '慈溪市': '080307', '印度': '361009', '泉州': '110400',
@@ -172,6 +171,7 @@ city_to_num_dict = {'厚街镇': '030830', '彭水县': '063100', '德宏': '251
                     '皇姑区': '230205', '苏州': '070300', '淮北': '151700', '鸡西': '220900', '北碚区': '061600', '南川区': '061000',
                     '新民市': '230213', '顺义区': '011200', '未央区': '200205', '太仓': '071600', '临沂': '120800', '昆山': '070600'}
 
+
 def get_uuid():
     return str(uuid.uuid4())
 
@@ -188,7 +188,6 @@ class Spider51job(object):
         ssh_pkey = os.path.join(workdir, 'sql', 'sql_pkey')
         self.conn = sql_connect('enterprise', sql_file, ssh_pkey)
         self.create_table()
-
 
     # 创建表格的函数，表格名称按照时间和关键词命名
     def create_table(self):
@@ -213,7 +212,7 @@ class Spider51job(object):
             self.conn.commit()
 
     # 插入信息函数，每次插入一条信息，插入信息失败会回滚
-    def insert_data(self, data:dict):
+    def insert_data(self, data: dict):
         '''插入数据，不成功就回滚操作'''
         sql = '''INSERT INTO `{}`(company_name, real_name, job_site, company_link) VALUES('{}','{}','{}','{}')'''
         try:
@@ -274,7 +273,8 @@ class Spider51job(object):
                     req_company = requests.get(data["company_link"], headers=self.Headers)
                     req_company.encoding = "gbk"
                     soup_company = BeautifulSoup(req_company.text, "lxml")
-                    company = soup_company.select("body > div.tCompanyPage > div.tCompany_center.clearfix > div.tHeader.tHCop > div > p.blicence > span")
+                    company = soup_company.select(
+                        "body > div.tCompanyPage > div.tCompany_center.clearfix > div.tHeader.tHCop > div > p.blicence > span")
                     try:
                         data["real_name"] = company[0].text.strip('营业执照：')
                     except Exception as e:
@@ -287,7 +287,7 @@ class Spider51job(object):
                 self.insert_data(data)
                 self.all_companys.append(data["company_name"])
         req.close()
-        print(self.city, len(self.all_companys)-self.prevous_company_count, "companys added")
+        print(self.city, len(self.all_companys) - self.prevous_company_count, "companys added")
         if len(self.all_companys) == self.prevous_company_count:
             self.none_count += 1
             if self.none_count > 3:
@@ -329,14 +329,13 @@ class Spider51job(object):
             self.close()
 
 
-
 if __name__ == '__main__':
-    citys = ['杭州','上海', '南京', '苏州','宁波', '温州', '湖州', '衢州', '台州', '金华', '丽水', '舟山', '嘉兴',
-             '无锡', '常州', '徐州', '南通', '淮安', '盐城', '扬州', '镇江', '泰州', '宿迁', '连云港']
+    citys = ['杭州', '宁波', '温州', '湖州', '衢州', '台州', '金华', '绍兴', '舟山', '嘉兴',
+             '上海', '南京', '苏州', '无锡', '常州', '南通', '扬州', '镇江', '昆山', '宿迁', '连云港',
+             '合肥', '黄山', '深圳', '广州', '西安', '重庆', '武汉', '成都', '长沙', '厦门', '福州']
 
     for city in citys:
         spider = Spider51job()
         spider.main(city, ' ')
 
     print("Mission Complete!")
-
