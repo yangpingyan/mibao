@@ -42,7 +42,13 @@ class SpiderLixiaoskb(object):
         self.url_login = 'https://biz.lixiaoskb.com/login'
 
         # 设置浏览器
-        self.browser = webdriver.Chrome(executable_path=os.path.join(self.workdir, 'others', 'chromedriver.exe'))
+
+        options = webdriver.ChromeOptions()
+        prefs = {'profile.default_content_setting_values': {'images': 2}}
+        options.add_experimental_option('prefs', prefs)
+
+        self.browser = webdriver.Chrome(executable_path=os.path.join(self.workdir, 'others', 'chromedriver.exe'),
+                                        chrome_options=options)
         self.login()
 
     # 创建表格的函数，表格名称按照时间和关键词命名
@@ -150,37 +156,44 @@ class SpiderLixiaoskb(object):
         base_table = {}
         # 清空搜索栏
         try:
-            self.browser.find_element(By.CSS_SELECTOR, "# searchDeInput > div.del-btn").click()
+            # self.browser.find_element(By.CSS_SELECTOR, "# searchDeInput > div.del-btn").click()
+            self.browser.find_element(By.CLASS_NAME, "clear-label").click()
+            time.sleep(round(random.uniform(1, 2), 2))
         except:
             pass
 
         # self.browser.find_element(By.CSS_SELECTOR,"#userRatio > div > label:nth-child(1) > span.el-radio__input > span").click()
         self.browser.find_element(By.TAG_NAME, "input").send_keys(company)
         self.browser.find_element(By.CSS_SELECTOR, "#searchDeInput > div.search-btn > div").click()
+        time.sleep(round(random.uniform(2, 3), 2))
         # report > div.contact > div > div > div:nth-child(2) > div > div.report-scroll_wrap.el-scrollbar__wrap > ul > div > div > div.single-card.mouseover.reccommand > div.header > span.el-tooltip.hint.number
         try:
-            url_company = self.browser.find_element(By.CSS_SELECTOR, "[class='result-list'").find_element(By.TAG_NAME, "a").get_attribute('href')
-            time.sleep(round(random.uniform(1,2),2))
+            WebDriverWait(self.browser, 10).until(lambda x: x.find_element(By.CSS_SELECTOR, "[class='result-list'")).find_element(By.TAG_NAME, "a").click()
+            # self.browser.find_element(By.CSS_SELECTOR, "[class='result-list'").find_element(By.TAG_NAME, "a").click()
+            self.browser.switch_to_window(self.browser.window_handles[1])
+            WebDriverWait(self.browser, 10).until(lambda x: x.find_element(By.CLASS_NAME, "name"))
+            # time.sleep(round(random.uniform(1, 2), 2))
         except Exception as e:
             print("Error message: ", e)
             print("没找到结果")
             time.sleep(1)
             return None
 
-        self.browser.get(url_company)
+        # self.browser.get(url_company)
         # base_table['link'] = url_company
-
-
         # 统一key名称
         key_name_dict = {'所属行业': '行业', '官方网站': '网址', '通讯地址': '地址', '注册号': '统一社会信用代码'}
 
         # 查看联系方式按键
         try:
-            self.browser.find_element(By.CSS_SELECTOR,
-                                      "#report > div.contact > div > div > div > div > div.action > span").click()
+            self.browser.find_element(By.CLASS_NAME, "mask-box").find_element(By.CLASS_NAME, "action").click()
+            WebDriverWait(self.browser, 10).until(lambda x: x.find_element(By.CSS_SELECTOR,
+                                                        "[class='report-scroll_wrap el-scrollbar__wrap']"))
+            # self.browser.find_element(By.CSS_SELECTOR,
+            #                           "#report > div.contact > div > div > div > div > div.action > span").click()
         except:
             print("没找到查看联系方式按钮---")
-
+        time.sleep(round(random.uniform(1, 2), 2))
         # 获取公司基本信息
         base_table['公司名称'] = self.browser.find_element(By.CLASS_NAME, "name").text
         info_elements = self.browser.find_elements(By.CLASS_NAME, "group")
@@ -190,7 +203,10 @@ class SpiderLixiaoskb(object):
             try:
                 desc = element.find_element(By.CLASS_NAME, "desc").text
             except:
-                desc = element.find_element(By.CLASS_NAME, "website").text
+                try:
+                    desc = element.find_element(By.CLASS_NAME, "website").text
+                except:
+                    desc = '-'
             if label in key_name_dict.keys():
                 label = key_name_dict[label]
             base_table[label] = desc
@@ -208,16 +224,19 @@ class SpiderLixiaoskb(object):
 
         # 获取联系方式
         try:
-            contact_element = self.browser.find_element(By.CSS_SELECTOR, "[class='report-scroll_wrap el-scrollbar__wrap']")
+            contact_element = self.browser.find_element(By.CSS_SELECTOR,
+                                                        "[class='report-scroll_wrap el-scrollbar__wrap']")
             phone_element = contact_element.find_elements(By.CSS_SELECTOR, "[class='el-tooltip hint number']")
             person_element = contact_element.find_elements(By.CSS_SELECTOR, "[class='el-carousel']")
             base_table['电话'] = ''
             for phone, name in zip(phone_element, person_element):
-                base_table['电话'] = base_table['电话'] + phone.text + name.find_element(By.CSS_SELECTOR, "[class='content']").text + '/'
+                base_table['电话'] = base_table['电话'] + phone.text + name.find_element(By.CSS_SELECTOR,
+                                                                                     "[class='content']").text + '/'
         except:
             base_table['电话'] = '暂无联系方式'
 
-        self.browser.back()
+        self.browser.close()
+        self.browser.switch_to_window(self.browser.window_handles[0])
         return base_table
 
     def get_companys_skb(self):
