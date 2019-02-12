@@ -139,8 +139,6 @@ class SpiderLixiaoskb(object):
     def login(self):
         self.browser.get(self.url_login)
         time.sleep(round(random.uniform(1, 2), 2))
-        WebDriverWait(self.browser, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR,
-                                                                          "#app > div.wrapper.login-wrapper > div > div > div.login-box > div:nth-child(2) > div.title > span.active")))
 
         # 模拟登陆
         self.browser.find_element_by_css_selector(
@@ -168,26 +166,23 @@ class SpiderLixiaoskb(object):
         time.sleep(round(random.uniform(2, 3), 2))
         # report > div.contact > div > div > div:nth-child(2) > div > div.report-scroll_wrap.el-scrollbar__wrap > ul > div > div > div.single-card.mouseover.reccommand > div.header > span.el-tooltip.hint.number
         try:
-            WebDriverWait(self.browser, 10).until(lambda x: x.find_element(By.CSS_SELECTOR, "[class='result-list'")).find_element(By.TAG_NAME, "a").click()
+            WebDriverWait(self.browser, 30).until(lambda x: x.find_element(By.CSS_SELECTOR, "[class='result-list'")).find_element(By.TAG_NAME, "a").click()
             # self.browser.find_element(By.CSS_SELECTOR, "[class='result-list'").find_element(By.TAG_NAME, "a").click()
             self.browser.switch_to_window(self.browser.window_handles[1])
-            WebDriverWait(self.browser, 10).until(lambda x: x.find_element(By.CLASS_NAME, "name"))
+            WebDriverWait(self.browser, 30).until(lambda x: x.find_element(By.CLASS_NAME, "name"))
             # time.sleep(round(random.uniform(1, 2), 2))
         except Exception as e:
             print("Error message: ", e)
             print("没找到结果")
             time.sleep(1)
             return None
-
-        # self.browser.get(url_company)
-        # base_table['link'] = url_company
         # 统一key名称
         key_name_dict = {'所属行业': '行业', '官方网站': '网址', '通讯地址': '地址', '注册号': '统一社会信用代码'}
 
         # 查看联系方式按键
         try:
             self.browser.find_element(By.CLASS_NAME, "mask-box").find_element(By.CLASS_NAME, "action").click()
-            WebDriverWait(self.browser, 10).until(lambda x: x.find_element(By.CSS_SELECTOR,
+            WebDriverWait(self.browser, 30).until(lambda x: x.find_element(By.CSS_SELECTOR,
                                                         "[class='report-scroll_wrap el-scrollbar__wrap']"))
             # self.browser.find_element(By.CSS_SELECTOR,
             #                           "#report > div.contact > div > div > div > div > div.action > span").click()
