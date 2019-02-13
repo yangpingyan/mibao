@@ -38,18 +38,10 @@ class SpiderLixiaoskb(object):
             lixiaoskb_account = json.load(f)
         self.username = lixiaoskb_account['username']
         self.password = lixiaoskb_account['password']
-
+        self.usernames = ['17746844466@qq.com', '17306420346@qq.com', '15356663955@qq.com', '17774004648@qq.com', 'wangkantao@qq.com']
         self.url_login = 'https://biz.lixiaoskb.com/login'
+        self.view_count = 0
 
-        # 设置浏览器
-
-        options = webdriver.ChromeOptions()
-        prefs = {'profile.default_content_setting_values': {'images': 2}}
-        options.add_experimental_option('prefs', prefs)
-
-        self.browser = webdriver.Chrome(executable_path=os.path.join(self.workdir, 'others', 'chromedriver.exe'),
-                                        chrome_options=options)
-        self.login()
 
     # 创建表格的函数，表格名称按照时间和关键词命名
     def create_table(self):
@@ -137,18 +129,44 @@ class SpiderLixiaoskb(object):
         self.conn.close()
 
     def login(self):
-        self.browser.get(self.url_login)
-        time.sleep(round(random.uniform(1, 2), 2))
+        # 关闭浏览器
+        try:
+            self.browser.quit()
+        except:
+            pass
+        usernames_counts = len(self.usernames)
+        for i in range(usernames_counts):
+            self.username = self.usernames.pop()
+            print(f"使用{self.username}用户名登陆")
 
-        # 模拟登陆
-        self.browser.find_element_by_css_selector(
-            "#app > div.wrapper.login-wrapper > div > div > div.login-box > div:nth-child(2) > div.ms-login > form > div:nth-child(1) > div > div > div > input").send_keys(
-            self.username)
-        self.browser.find_element_by_css_selector(
-            "#app > div.wrapper.login-wrapper > div > div > div.login-box > div:nth-child(2) > div.ms-login > form > div:nth-child(2) > div > div > div > input").send_keys(
-            self.password)
-        self.browser.find_element_by_css_selector(
-            "#app > div.wrapper.login-wrapper > div > div > div.login-box > div:nth-child(2) > div.btn > button").click()
+            # 设置浏览器
+            options = webdriver.ChromeOptions()
+            prefs = {'profile.default_content_setting_values': {'images': 2}}
+            options.add_experimental_option('prefs', prefs)
+
+            self.browser = webdriver.Chrome(executable_path=os.path.join(self.workdir, 'others', 'chromedriver.exe'),
+                                            chrome_options=options)
+
+            self.browser.get(self.url_login)
+            time.sleep(round(random.uniform(1, 2), 2))
+
+            # 模拟登陆
+            self.browser.find_element_by_css_selector(
+                "#app > div.wrapper.login-wrapper > div > div > div.login-box > div:nth-child(2) > div.ms-login > form > div:nth-child(1) > div > div > div > input").send_keys(
+                self.username)
+            self.browser.find_element_by_css_selector(
+                "#app > div.wrapper.login-wrapper > div > div > div.login-box > div:nth-child(2) > div.ms-login > form > div:nth-child(2) > div > div > div > input").send_keys(
+                self.password)
+            self.browser.find_element_by_css_selector(
+                "#app > div.wrapper.login-wrapper > div > div > div.login-box > div:nth-child(2) > div.btn > button").click()
+            view_count = WebDriverWait(self.browser, 10).until(lambda x: x.find_element(By.CSS_SELECTOR, "[class='viewCount']")).text
+            self.view_count = int(view_count)
+            print("登陆成功, 还可查看{self.view_count}次联系方式")
+            if self.view_count > 3:
+                break
+            else:
+                self.browser.quit()
+
 
     def get_lixiaoskb(self, company):
         base_table = {}
@@ -227,6 +245,9 @@ class SpiderLixiaoskb(object):
             for phone, name in zip(phone_element, person_element):
                 base_table['电话'] = base_table['电话'] + phone.text + name.find_element(By.CSS_SELECTOR,
                                                                                      "[class='content']").text + '/'
+
+            view_count = self.browser.find_element(By.CSS_SELECTOR, "[class='viewCount']").text
+            self.view_count = int(view_count)
         except:
             base_table['电话'] = '暂无联系方式'
 
@@ -312,15 +333,24 @@ class SpiderLixiaoskb(object):
         self.browser.close()
         return ret
 
-    def main_lagou(self):
-        ret = 1
+    def main_database(self, database_name):
         # 爬取51job所有数据库中未爬取的公司
-        companys_df = self.get_companys_lagou()
-        # 若没有从事可以爬取数据
+        if database_name == 'lagou':
+            companys_df = self.get_companys_lagou()
+        elif database_name == '51job':
+            companys_df = self.get_companys_51job()
+        else:
+            print("未知数据库， 退出")
+            return 1
         if len(companys_df) > 0:
-            ret = 0
             companys = companys_df['company_name'].values.tolist()
             for company in companys:
+                if self.view_count < 3:
+                    self.login()
+
+                if self.view_count < 3:
+                    break
+                self.view_count -= 1
                 print("Start to crawl :", companys_df[companys_df['company_name'] == company])
                 base_table = self.get_lixiaoskb(company)
                 if base_table is None:
@@ -331,60 +361,17 @@ class SpiderLixiaoskb(object):
                     self.insert_data(base_table)
 
         self.close()
-        self.browser.close()
-        return ret
-
-    def main(self, companys):
-        skb_df = pd.read_sql('''select t.company_name from lixiaoskb t''', self.conn)
-        companys_new = set(companys).difference(skb_df['company_name'].tolist())
-        for company in companys_new:
-            print("Start to crawl :", company)
-            base_table = self.get_lixiaoskb(company)
-            if base_table is None:
-                continue
-            else:
-                print(base_table)
-                try:
-                    if base_table['成立日期'][:2] in ['19', '20']:
-                        self.insert_data(base_table)
-                    else:
-                        print("解密出错，退出重先爬取。。。")
-                        continue
-                except:
-                    continue
-
-        self.close()
-        self.browser.close()
+        self.browser.quit()
         return 0
 
-    def crawl_company(self, company):
-        df = pd.read_sql('''select * from lixiaoskb t WHERE t.company_name = '{}';'''.format(company), self.conn)
-        if len(df) > 0:
-            return df
+    def main(self, companys):
 
-        print("Start to crawl :", company)
-        base_table = self.get_lixiaoskb(company)
-        if base_table is not None:
-            print(base_table)
-            try:
-                if base_table['成立日期'][:2] in ['19', '20']:
-                    self.insert_data(base_table)
-                    df = pd.read_sql('''select * from lixiaoskb t WHERE t.company_name = '{}';'''.format(company),
-                                     self.conn)
-                    return df
-                else:
-                    print("解密出错，退出重先爬取。。。")
-                    self.crawl_company(company)
-            except:
-                pass
-
-        return df
-
+        return 0
 
 if __name__ == '__main__':
     count = 0
     spider = SpiderLixiaoskb()
-    ret = spider.main_lagou()
+    ret = spider.main_database('lagou')
 
     #
     # print("Starting 51job table ")
