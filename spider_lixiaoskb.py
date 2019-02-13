@@ -161,7 +161,7 @@ class SpiderLixiaoskb(object):
                 "#app > div.wrapper.login-wrapper > div > div > div.login-box > div:nth-child(2) > div.btn > button").click()
             view_count = WebDriverWait(self.browser, 10).until(lambda x: x.find_element(By.CSS_SELECTOR, "[class='viewCount']")).text
             self.view_count = int(view_count)
-            print("登陆成功, 还可查看{self.view_count}次联系方式")
+            print(f"登陆成功, 还可查看{self.view_count}次联系方式")
             if self.view_count > 3:
                 break
             else:
@@ -350,7 +350,7 @@ class SpiderLixiaoskb(object):
 
                 if self.view_count < 3:
                     break
-                self.view_count -= 1
+
                 print("Start to crawl :", companys_df[companys_df['company_name'] == company])
                 base_table = self.get_lixiaoskb(company)
                 if base_table is None:
@@ -371,27 +371,7 @@ class SpiderLixiaoskb(object):
 if __name__ == '__main__':
     count = 0
     spider = SpiderLixiaoskb()
-    ret = spider.main_database('lagou')
+    spider.main_database('lagou')
+    # spider.main_database('51job')
 
-    #
-    # print("Starting 51job table ")
-    # while True:
-    #     count += 1
-    #     print(count)
-    #     spider = SpiderLixiaoskb()
-    #     ret = spider.main_51job()
-    #
-    #     if ret != 0:
-    #         break
-    #
-    # print("Starting lagou table ")
-    # while True:
-    #     count += 1
-    #     print(count)
-    #     spider = SpiderLixiaoskb()
-    #     ret = spider.main_lagou()
-    #
-    #     if ret != 0:
-    #         break
-    #
-    # print("lixiaoskb spider completed")
+    print("lixiaoskb spider completed")
