@@ -11,7 +11,7 @@ from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
-
+from selenium.webdriver.common.keys import Keys
 import pandas as pd
 import time
 import re, json, os, sys
@@ -180,19 +180,15 @@ class SpiderLixiaoskb(object):
 
         # self.browser.find_element(By.CSS_SELECTOR,"#userRatio > div > label:nth-child(1) > span.el-radio__input > span").click()
         self.browser.find_element(By.TAG_NAME, "input").send_keys(company)
-        self.browser.find_element(By.CSS_SELECTOR, "#searchDeInput > div.search-btn > div").click()
-        time.sleep(round(random.uniform(2, 3), 2))
-        # report > div.contact > div > div > div:nth-child(2) > div > div.report-scroll_wrap.el-scrollbar__wrap > ul > div > div > div.single-card.mouseover.reccommand > div.header > span.el-tooltip.hint.number
+        self.browser.find_element(By.TAG_NAME, "input").send_keys(Keys.ENTER)
         try:
-            WebDriverWait(self.browser, 30).until(lambda x: x.find_element(By.CSS_SELECTOR, "[class='result-list'")).find_element(By.TAG_NAME, "a").click()
+            WebDriverWait(self.browser, 20).until(lambda x: x.find_element(By.CSS_SELECTOR, "[class='result-list'")).find_element(By.TAG_NAME, "a").click()
             # self.browser.find_element(By.CSS_SELECTOR, "[class='result-list'").find_element(By.TAG_NAME, "a").click()
             self.browser.switch_to_window(self.browser.window_handles[1])
-            WebDriverWait(self.browser, 30).until(lambda x: x.find_element(By.CLASS_NAME, "name"))
-            # time.sleep(round(random.uniform(1, 2), 2))
+            WebDriverWait(self.browser, 20).until(lambda x: x.find_element(By.CLASS_NAME, "name"))
         except Exception as e:
             print("Error message: ", e)
             print("没找到结果")
-            time.sleep(1)
             return None
         # 统一key名称
         key_name_dict = {'所属行业': '行业', '官方网站': '网址', '通讯地址': '地址', '注册号': '统一社会信用代码'}
@@ -206,7 +202,7 @@ class SpiderLixiaoskb(object):
             #                           "#report > div.contact > div > div > div > div > div.action > span").click()
         except:
             print("没找到查看联系方式按钮---")
-        time.sleep(round(random.uniform(1, 2), 2))
+        # time.sleep(round(random.uniform(1, 2), 2))
         # 获取公司基本信息
         base_table['公司名称'] = self.browser.find_element(By.CLASS_NAME, "name").text
         info_elements = self.browser.find_elements(By.CLASS_NAME, "group")
@@ -311,27 +307,6 @@ class SpiderLixiaoskb(object):
 
         return df
 
-    def main_51job(self):
-        # 爬取51job所有数据库中未爬取的公司
-        ret = 1
-        companys_df = self.get_companys_51job()
-        # 若没有从事可以爬取数据
-        if len(companys_df) > 0:
-            ret = 0
-            companys = companys_df['real_name'].values.tolist()
-            for company in companys:
-                print("Start to crawl :", companys_df[companys_df['real_name'] == company])
-                base_table = self.get_lixiaoskb(company)
-                if base_table is None:
-                    continue
-                else:
-                    print(base_table)
-                    base_table['id_related'] = companys_df[companys_df['real_name'] == company]['id'].values[0]
-                    self.insert_data(base_table)
-
-        self.close()
-        self.browser.close()
-        return ret
 
     def main_database(self, database_name):
         # 爬取51job所有数据库中未爬取的公司
@@ -339,6 +314,7 @@ class SpiderLixiaoskb(object):
             companys_df = self.get_companys_lagou()
         elif database_name == '51job':
             companys_df = self.get_companys_51job()
+            companys_df.rename(columns={'real_name': 'company_name'}, inplace=True)
         else:
             print("未知数据库， 退出")
             return 1
@@ -371,7 +347,7 @@ class SpiderLixiaoskb(object):
 if __name__ == '__main__':
     count = 0
     spider = SpiderLixiaoskb()
-    spider.main_database('lagou')
-    # spider.main_database('51job')
+    # spider.main_database('lagou')
+    spider.main_database('51job')
 
     print("lixiaoskb spider completed")

@@ -11,6 +11,7 @@ from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 
 import pandas as pd
 import time
@@ -55,7 +56,7 @@ class SpiderTianyangcha(object):
                                         chrome_options=options)
         self.create_woff_map()
         self.login()
-        wait_key = input()
+
     # 创建表格的函数，表格名称按照时间和关键词命名
     def create_table(self):
         self.table_name = "tianyancha"
@@ -198,7 +199,10 @@ class SpiderTianyangcha(object):
             "#web-content > div > div.container > div > div.login-right > div > div.module.module1.module2.loginmodule.collapse.in > div.modulein.modulein1.mobile_box.f-base.collapse.in > div.input-warp.-block > input").send_keys(
             self.password)
         self.browser.find_element_by_css_selector(
-            "#web-content > div > div.container > div > div.login-right > div > div.module.module1.module2.loginmodule.collapse.in > div.modulein.modulein1.mobile_box.f-base.collapse.in > div.btn.-hg.btn-primary.-block").click()
+            "#web-content > div > div.container > div > div.login-right > div > div.module.module1.module2.loginmodule.collapse.in > div.modulein.modulein1.mobile_box.f-base.collapse.in > div.input-warp.-block > input").send_keys(
+            Keys.ENTER)
+        input()
+
 
     def get_tianyancha(self, company):
         decode_list = []
