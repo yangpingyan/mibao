@@ -126,7 +126,7 @@ except Exception as e:
 else:
     conn.commit()
 
-citys = ['杭州', '上海', '广州', '江苏', '深圳']
+citys = ['杭州', '上海', '广州', '江苏']
 
 for city in citys:
     print(city)
@@ -176,6 +176,7 @@ for city in citys:
                     df = df[df['company_name'].isin(companys_list) == False]
                     if len(df) > 0:
                         insert_data_df(conn, df)
+                        print(df)
                         companys_list.extend(df['company_name'].tolist())
                         none_added_count = 0
                     else:

@@ -285,6 +285,7 @@ class Spider51job(object):
                     pass
 
                 self.insert_data(data)
+                print(data)
                 self.all_companys.append(data["company_name"])
         req.close()
         print(self.city, len(self.all_companys) - self.prevous_company_count, "companys added")
@@ -330,9 +331,9 @@ class Spider51job(object):
 
 
 if __name__ == '__main__':
-    citys = ['杭州', '宁波', '温州', '湖州', '衢州', '台州', '金华', '绍兴', '舟山', '嘉兴',
-             '上海', '南京', '苏州', '无锡', '常州', '南通', '扬州', '镇江', '昆山', '宿迁', '连云港',
-             '合肥', '黄山', '深圳', '广州', '西安', '重庆', '武汉', '成都', '长沙', '厦门', '福州']
+    citys = ['杭州', '上海', '宁波', '温州', '湖州', '台州', '金华', '绍兴', '嘉兴',
+             '南京', '苏州', '常州', '无锡', '南通', '扬州', '镇江', '昆山', '宿迁', '连云港',
+             '合肥', '黄山',  '衢州', '舟山',]
 
     for city in citys:
         spider = Spider51job()
