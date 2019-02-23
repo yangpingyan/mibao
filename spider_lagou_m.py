@@ -126,7 +126,7 @@ except Exception as e:
 else:
     conn.commit()
 
-citys = ['杭州', '上海', '广州', '江苏']
+citys = ['杭州', '上海']
 
 for city in citys:
     print(city)
