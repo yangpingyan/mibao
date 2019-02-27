@@ -285,7 +285,7 @@ class Spider51job(object):
                     pass
 
                 self.insert_data(data)
-                print(data)
+                print(data.values())
                 self.all_companys.append(data["company_name"])
         req.close()
         print(self.city, len(self.all_companys) - self.prevous_company_count, "companys added")
