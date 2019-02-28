@@ -462,6 +462,7 @@ class SpiderTianyangcha(object):
                     print(base_table)
                     base_table['id_related'] = companys_df[companys_df['real_name'] == company]['id'].values[0]
                     self.insert_data(base_table)
+                    # time.sleep(round(random.uniform(1, 20), 2))
 
         self.close()
         self.browser.close()
