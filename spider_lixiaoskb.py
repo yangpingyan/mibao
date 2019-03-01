@@ -29,9 +29,9 @@ class SpiderLixiaoskb(object):
         self.workdir = workdir
         self.from_table = None
 
-        sql_file = os.path.join(workdir, 'sql', 'sql_mibao_spider.json')
-        ssh_pkey = os.path.join(workdir, 'sql', 'sql_pkey')
-        self.conn = sql_connect('enterprise', sql_file, ssh_pkey)
+        self.sql_file = os.path.join(workdir, 'sql', 'sql_mibao_spider.json')
+        self.ssh_pkey = os.path.join(workdir, 'sql', 'sql_pkey')
+        self.conn = sql_connect('enterprise', self.sql_file, self.ssh_pkey)
         self.create_table()
 
         with open(os.path.join(workdir, 'others', "lixiaoskb_account.json"), 'r') as f:
@@ -95,6 +95,13 @@ class SpiderLixiaoskb(object):
 
     # 插入信息函数，每次插入一条信息，插入信息失败会回滚
     def insert_data(self, data: dict):
+        try:
+            self.conn.ping(True)
+        except Exception as e:
+            self.conn.cursor().close()
+            self.conn.close()
+            self.conn = sql_connect('enterprise', self.sql_file, self.ssh_pkey)
+
         '''插入数据，不成功就回滚操作'''
         sql = '''REPLACE INTO `{}`(company_name, phone, email, website,
                                address, introduction, legal_person, registered_capital,
