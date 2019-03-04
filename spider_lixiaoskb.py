@@ -103,7 +103,7 @@ class SpiderLixiaoskb(object):
             self.conn = sql_connect('enterprise', self.sql_file, self.ssh_pkey)
 
         '''插入数据，不成功就回滚操作'''
-        sql = '''REPLACE INTO `{}`(company_name, phone, email, website,
+        sql = '''INSERT INTO `{}`(company_name, phone, email, website,
                                address, introduction, legal_person, registered_capital,
                                registered_date, company_status, registered_number,
                                organization_code, social_credit_code, company_type,

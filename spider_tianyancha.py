@@ -55,7 +55,7 @@ class SpiderTianyangcha(object):
         self.browser = webdriver.Chrome(executable_path=os.path.join(self.workdir, 'others', 'chromedriver.exe'),
                                         chrome_options=options)
         self.create_woff_map()
-        self.login()
+        # self.login()
 
     # 创建表格的函数，表格名称按照时间和关键词命名
     def create_table(self):
@@ -117,7 +117,7 @@ class SpiderTianyangcha(object):
             self.conn = sql_connect('enterprise', self.sql_file, self.ssh_pkey)
 
         '''插入数据，不成功就回滚操作'''
-        sql = '''REPLACE INTO `{}`(company_name, phone, email, website,
+        sql = '''INSERT INTO `{}`(company_name, phone, email, website,
                                address, introduction, legal_person, registered_capital,
                                registered_date, company_status, registered_number,
                                organization_code, social_credit_code, company_type,
@@ -236,7 +236,7 @@ class SpiderTianyangcha(object):
                 print("get_url 可能是机器人识别， 识别结束后按键继续：", time.asctime())
                 while True:
                     time.sleep(1)
-                    if self.browser.current_url.find('captcha') < 0:
+                    if self.browser.current_url.find('captcha') < 0 and self.browser.current_url.find('login') < 0:
                         time.sleep(1)
                         break
                 print("OK")
@@ -463,7 +463,7 @@ class SpiderTianyangcha(object):
         if len(companys_df) > 0:
             ret = 0
             companys = companys_df['real_name'].values.tolist()
-            for company in companys:
+            for company in companys[:20]:
                 print("Start to crawl :", companys_df[companys_df['real_name'] == company])
                 base_table = self.get_tianyancha(company)
                 if base_table is None:
