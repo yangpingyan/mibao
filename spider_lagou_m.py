@@ -12,6 +12,9 @@ import json
 import pandas as pd
 import random
 import os
+
+from selenium import webdriver
+
 from sql.sql import sql_connect
 import sys
 try:
@@ -125,6 +128,12 @@ except Exception as e:
     print("创建表格失败，表格可能已经存在！", e)
 else:
     conn.commit()
+# 设置浏览器
+options = webdriver.ChromeOptions()
+prefs = {'profile.default_content_setting_values': {'images': 2}}
+options.add_experimental_option('prefs', prefs)
+browser = webdriver.Chrome(chrome_options=options)
+browser.get("https://www.lagou.com/")
 
 citys = ['杭州', '上海']
 

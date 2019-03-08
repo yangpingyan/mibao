@@ -38,7 +38,7 @@ class SpiderLixiaoskb(object):
             lixiaoskb_account = json.load(f)
         self.username = lixiaoskb_account['username']
         self.password = lixiaoskb_account['password']
-        self.usernames = ['17746844466@qq.com', '17306420346@qq.com', '15356663955@qq.com', '17774004648@qq.com', 'wangkantao@qq.com']
+        self.usernames = ['17746844466@qq.com', '15356663955@qq.com', '17774004648@qq.com', 'wangkantao@qq.com', '17306420346@qq.com']
         self.url_login = 'https://biz.lixiaoskb.com/login'
         self.view_count = 0
 
@@ -169,7 +169,7 @@ class SpiderLixiaoskb(object):
             view_count = WebDriverWait(self.browser, 10).until(lambda x: x.find_element(By.CSS_SELECTOR, "[class='viewCount']")).text
             self.view_count = int(view_count)
             print(f"登陆成功, 还可查看{self.view_count}次联系方式")
-            if self.view_count > 3:
+            if self.view_count > self.view_count_left:
                 break
             else:
                 self.browser.quit()
@@ -178,25 +178,34 @@ class SpiderLixiaoskb(object):
     def get_lixiaoskb(self, company):
         base_table = {}
         # 清空搜索栏
-        try:
-            # self.browser.find_element(By.CSS_SELECTOR, "# searchDeInput > div.del-btn").click()
-            self.browser.find_element(By.CLASS_NAME, "clear-label").click()
-            time.sleep(round(random.uniform(1, 2), 2))
-        except:
-            pass
+        # try:
+        #     # self.browser.find_element(By.CSS_SELECTOR, "# searchDeInput > div.del-btn").click()
+        #     self.browser.find_element(By.CLASS_NAME, "clear-label").click()
+        #     time.sleep(round(random.uniform(1, 2), 2))
+        # except:
+        #     pass
 
         # self.browser.find_element(By.CSS_SELECTOR,"#userRatio > div > label:nth-child(1) > span.el-radio__input > span").click()
         self.browser.find_element(By.TAG_NAME, "input").send_keys(company)
         self.browser.find_element(By.TAG_NAME, "input").send_keys(Keys.ENTER)
         try:
-            WebDriverWait(self.browser, 20).until(lambda x: x.find_element(By.CSS_SELECTOR, "[class='result-list'")).find_element(By.TAG_NAME, "a").click()
+            WebDriverWait(self.browser, 20).until(lambda x: x.find_element(By.CSS_SELECTOR, "[class='result-list'")).find_element(By.TAG_NAME, "a")
+            url_company = self.browser.find_element(By.CSS_SELECTOR, "[class='result-list'").find_element(By.TAG_NAME, "a").get_attribute('href')
             # self.browser.find_element(By.CSS_SELECTOR, "[class='result-list'").find_element(By.TAG_NAME, "a").click()
-            self.browser.switch_to_window(self.browser.window_handles[1])
-            WebDriverWait(self.browser, 20).until(lambda x: x.find_element(By.CLASS_NAME, "name"))
+            # self.browser.switch_to_window(self.browser.window_handles[1])
+
         except Exception as e:
             print("Error message: ", e)
             print("没找到结果")
+            self.browser.refresh()
+            try:
+                self.browser.find_element(By.CLASS_NAME, "clear-label").click()
+            except:
+                pass
+            time.sleep(round(random.uniform(1, 2), 2))
             return None
+        self.browser.get(url_company)
+        WebDriverWait(self.browser, 20).until(lambda x: x.find_element(By.CLASS_NAME, "name"))
         # 统一key名称
         key_name_dict = {'所属行业': '行业', '官方网站': '网址', '通讯地址': '地址', '注册号': '统一社会信用代码'}
 
@@ -254,8 +263,8 @@ class SpiderLixiaoskb(object):
         except:
             base_table['电话'] = '暂无联系方式'
 
-        self.browser.close()
-        self.browser.switch_to_window(self.browser.window_handles[0])
+        self.browser.back()
+        # self.browser.switch_to_window(self.browser.window_handles[0])
         return base_table
 
     def get_companys_skb(self):
@@ -316,6 +325,7 @@ class SpiderLixiaoskb(object):
 
 
     def main_database(self, database_name):
+        self.view_count_left = 3
         # 爬取51job所有数据库中未爬取的公司
         if database_name == 'lagou':
             companys_df = self.get_companys_lagou()
@@ -328,10 +338,10 @@ class SpiderLixiaoskb(object):
         if len(companys_df) > 0:
             companys = companys_df['company_name'].values.tolist()
             for company in companys:
-                if self.view_count < 3:
+                if self.view_count < self.view_count_left:
                     self.login()
 
-                if self.view_count < 3:
+                if self.view_count < self.view_count_left:
                     break
 
                 print("Start to crawl :", companys_df[companys_df['company_name'] == company])

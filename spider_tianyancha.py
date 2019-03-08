@@ -463,7 +463,7 @@ class SpiderTianyangcha(object):
         if len(companys_df) > 0:
             ret = 0
             companys = companys_df['real_name'].values.tolist()
-            for company in companys[:20]:
+            for company in companys:
                 print("Start to crawl :", companys_df[companys_df['real_name'] == company])
                 base_table = self.get_tianyancha(company)
                 if base_table is None:
