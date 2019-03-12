@@ -38,10 +38,10 @@ class SpiderLixiaoskb(object):
             lixiaoskb_account = json.load(f)
         self.username = lixiaoskb_account['username']
         self.password = lixiaoskb_account['password']
-        self.usernames = ['17746844466@qq.com', '15356663955@qq.com', '17774004648@qq.com', 'wangkantao@qq.com', '17306420346@qq.com']
+        self.usernames = ['17746844466@qq.com', '15356663955@qq.com', '17774004648@qq.com', 'wangkantao@qq.com',
+                          '17306420346@qq.com']
         self.url_login = 'https://biz.lixiaoskb.com/login'
         self.view_count = 0
-
 
     # 创建表格的函数，表格名称按照时间和关键词命名
     def create_table(self):
@@ -150,9 +150,8 @@ class SpiderLixiaoskb(object):
             options = webdriver.ChromeOptions()
             prefs = {'profile.default_content_setting_values': {'images': 2}}
             options.add_experimental_option('prefs', prefs)
-
-            self.browser = webdriver.Chrome(executable_path=os.path.join(self.workdir, 'others', 'chromedriver.exe'),
-                                            chrome_options=options)
+            executable_path = 'C:\ProgramData\Anaconda3\envs\envforall\chromedriver.exe'
+            self.browser = webdriver.Chrome(executable_path=executable_path, chrome_options=options)
 
             self.browser.get(self.url_login)
             time.sleep(round(random.uniform(1, 2), 2))
@@ -166,14 +165,14 @@ class SpiderLixiaoskb(object):
                 self.password)
             self.browser.find_element_by_css_selector(
                 "#app > div.wrapper.login-wrapper > div > div > div.login-box > div:nth-child(2) > div.btn > button").click()
-            view_count = WebDriverWait(self.browser, 10).until(lambda x: x.find_element(By.CSS_SELECTOR, "[class='viewCount']")).text
+            view_count = WebDriverWait(self.browser, 10).until(
+                lambda x: x.find_element(By.CSS_SELECTOR, "[class='viewCount']")).text
             self.view_count = int(view_count)
             print(f"登陆成功, 还可查看{self.view_count}次联系方式")
             if self.view_count > self.view_count_left:
                 break
             else:
                 self.browser.quit()
-
 
     def get_lixiaoskb(self, company):
         base_table = {}
@@ -189,8 +188,11 @@ class SpiderLixiaoskb(object):
         self.browser.find_element(By.TAG_NAME, "input").send_keys(company)
         self.browser.find_element(By.TAG_NAME, "input").send_keys(Keys.ENTER)
         try:
-            WebDriverWait(self.browser, 20).until(lambda x: x.find_element(By.CSS_SELECTOR, "[class='result-list'")).find_element(By.TAG_NAME, "a")
-            url_company = self.browser.find_element(By.CSS_SELECTOR, "[class='result-list'").find_element(By.TAG_NAME, "a").get_attribute('href')
+            WebDriverWait(self.browser, 20).until(
+                lambda x: x.find_element(By.CSS_SELECTOR, "[class='result-list'")).find_element(By.TAG_NAME, "a")
+            url_company = self.browser.find_element(By.CSS_SELECTOR, "[class='result-list'").find_element(By.TAG_NAME,
+                                                                                                          "a").get_attribute(
+                'href')
             # self.browser.find_element(By.CSS_SELECTOR, "[class='result-list'").find_element(By.TAG_NAME, "a").click()
             # self.browser.switch_to_window(self.browser.window_handles[1])
 
@@ -213,7 +215,7 @@ class SpiderLixiaoskb(object):
         try:
             self.browser.find_element(By.CLASS_NAME, "mask-box").find_element(By.CLASS_NAME, "action").click()
             WebDriverWait(self.browser, 30).until(lambda x: x.find_element(By.CSS_SELECTOR,
-                                                        "[class='report-scroll_wrap el-scrollbar__wrap']"))
+                                                                           "[class='report-scroll_wrap el-scrollbar__wrap']"))
             # self.browser.find_element(By.CSS_SELECTOR,
             #                           "#report > div.contact > div > div > div > div > div.action > span").click()
         except:
@@ -323,7 +325,6 @@ class SpiderLixiaoskb(object):
 
         return df
 
-
     def main_database(self, database_name):
         self.view_count_left = 3
         # 爬取51job所有数据库中未爬取的公司
@@ -360,6 +361,7 @@ class SpiderLixiaoskb(object):
     def main(self, companys):
 
         return 0
+
 
 if __name__ == '__main__':
     count = 0
