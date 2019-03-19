@@ -3,9 +3,7 @@
 # @Time : 2018/12/10 11:13 
 # @Author : yangpingyan@gmail.com
 
-
 import random
-
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
@@ -15,7 +13,7 @@ from selenium.webdriver.common.keys import Keys
 import pandas as pd
 import time
 import re, json, os, sys
-from fontTools.ttLib import TTFont
+from datetime import datetime
 
 from sql.sql import sql_connect
 
@@ -38,8 +36,8 @@ class SpiderLixiaoskb(object):
             lixiaoskb_account = json.load(f)
         self.username = lixiaoskb_account['username']
         self.password = lixiaoskb_account['password']
-        self.usernames = ['17746844466@qq.com', '15356663955@qq.com', '17774004648@qq.com', 'wangkantao@qq.com',
-                          '17306420346@qq.com']
+        self.usernames = ['15356663955@qq.com', '17306420346@qq.com', '17746844466@qq.com', '17774004648@qq.com',
+                          'wangkantao@qq.com']
         self.url_login = 'https://biz.lixiaoskb.com/login'
         self.view_count = 0
 
@@ -326,7 +324,12 @@ class SpiderLixiaoskb(object):
         return df
 
     def main_database(self, database_name):
-        self.view_count_left = 3
+        now = datetime.now()
+        if now.weekday() > 4 or now.hour > 15:
+            self.view_count_left = 3
+        else:
+            self.view_count_left = 99
+        print(f"view_count_left is {self.view_count_left}")
         # 爬取51job所有数据库中未爬取的公司
         if database_name == 'lagou':
             companys_df = self.get_companys_lagou()
