@@ -324,11 +324,12 @@ class SpiderLixiaoskb(object):
         return df
 
     def main_database(self, database_name):
+        # 工作日16点以前，预留99个查询数
         now = datetime.now()
-        if now.weekday() > 4 or now.hour > 15:
+        if now.weekday() > 4 or now.hour > 14:
             self.view_count_left = 3
         else:
-            self.view_count_left = 99
+            self.view_count_left = 55
         print(f"view_count_left is {self.view_count_left}")
         # 爬取51job所有数据库中未爬取的公司
         if database_name == 'lagou':
