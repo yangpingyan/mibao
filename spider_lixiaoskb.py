@@ -329,7 +329,7 @@ class SpiderLixiaoskb(object):
         if now.weekday() > 4 or now.hour > 14:
             self.view_count_left = 3
         else:
-            self.view_count_left = 55
+            self.view_count_left = 3
         print(f"view_count_left is {self.view_count_left}")
         # 爬取51job所有数据库中未爬取的公司
         if database_name == 'lagou':
@@ -368,9 +368,16 @@ class SpiderLixiaoskb(object):
 
 
 if __name__ == '__main__':
-    count = 0
-    spider = SpiderLixiaoskb()
-    # spider.main_database('lagou')
-    spider.main_database('51job')
+    while(True):
+        try:
+            spider = SpiderLixiaoskb()
+            # spider.main_database('lagou')
+            ret = spider.main_database('51job')
+        except Exception as e:
+            print(e)
+            ret = -1
+
+        if ret == 0:
+            break
 
     print("lixiaoskb spider completed")
