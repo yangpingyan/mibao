@@ -3,7 +3,6 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/mibao.iml" filepath="$PROJECT_DIR$/.idea/mibao.iml" />
-      <module fileurl="file://$PROJECT_DIR$/../pytool/.idea/pytool.iml" filepath="$PROJECT_DIR$/../pytool/.idea/pytool.iml" />
     </modules>
   </component>
 </project>

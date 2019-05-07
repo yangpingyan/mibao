@@ -40,7 +40,7 @@ class SpiderLixiaoskb(object):
                           'wangkantao@qq.com']
         self.url_login = 'https://biz.lixiaoskb.com/login'
         self.view_count = 0
-
+        self.companys_skb = self.get_companys_skb()
     # 创建表格的函数，表格名称按照时间和关键词命名
     def create_table(self):
         self.table_name = "lixiaoskb"
@@ -208,19 +208,21 @@ class SpiderLixiaoskb(object):
         WebDriverWait(self.browser, 20).until(lambda x: x.find_element(By.CLASS_NAME, "name"))
         # 统一key名称
         key_name_dict = {'所属行业': '行业', '官方网站': '网址', '通讯地址': '地址', '注册号': '统一社会信用代码'}
-
+        # 获取公司基本信息
+        base_table['公司名称'] = self.browser.find_element(By.CLASS_NAME, "name").text
+        if base_table['公司名称'] in self.companys_skb:
+            self.browser.back()
+            return None
         # 查看联系方式按键
         try:
             self.browser.find_element(By.CLASS_NAME, "mask-box").find_element(By.CLASS_NAME, "action").click()
             WebDriverWait(self.browser, 30).until(lambda x: x.find_element(By.CSS_SELECTOR,
                                                                            "[class='report-scroll_wrap el-scrollbar__wrap']"))
-            # self.browser.find_element(By.CSS_SELECTOR,
-            #                           "#report > div.contact > div > div > div > div > div.action > span").click()
+
         except:
             print("没找到查看联系方式按钮---")
-        # time.sleep(round(random.uniform(1, 2), 2))
-        # 获取公司基本信息
-        base_table['公司名称'] = self.browser.find_element(By.CLASS_NAME, "name").text
+
+
         info_elements = self.browser.find_elements(By.CLASS_NAME, "group")
         for element in info_elements:
             label = element.find_element(By.CLASS_NAME, "label").text
@@ -264,24 +266,23 @@ class SpiderLixiaoskb(object):
             base_table['电话'] = '暂无联系方式'
 
         self.browser.back()
-        # self.browser.switch_to_window(self.browser.window_handles[0])
         return base_table
 
     def get_companys_skb(self):
         skb_file = os.path.join(self.workdir, 'skb_companys.csv')
+
         if os.path.exists(skb_file):
             df = pd.read_csv(skb_file)
-            # last_id = max(df['id'])
-            if len(df) > 0:
-                skb_df = pd.read_sql(
-                    '''SELECT j.id, j.`company_name` FROM  `lixiaoskb` j WHERE j.id > {}; '''.format(max(df['id'])),
-                    self.conn)
-                df = pd.concat([df, skb_df])
+            skb_df = pd.read_sql(
+                '''SELECT j.id, j.`company_name` FROM  `lixiaoskb` j WHERE j.id > {} ORDER BY id ; '''.format(max(df['id'])),
+                self.conn)
+            df = pd.concat([df, skb_df])
+            skb_df.to_csv(skb_file, index=False,mode='a', header=False)
         else:
-            df = pd.read_sql('''SELECT j.id, j.`company_name` FROM  `lixiaoskb` j ;''', self.conn)
+            df = pd.read_sql('''SELECT j.id, j.`company_name` FROM  `lixiaoskb` j ORDER BY id ; ''', self.conn)
+            df.to_csv(skb_file, index=False)
 
-        df.to_csv(skb_file, index=False)
-        return df
+        return df['company_name'].tolist()
 
     def get_companys_51job(self):
         start_time = time.clock()
@@ -294,10 +295,10 @@ class SpiderLixiaoskb(object):
         companys_51job_df = pd.read_sql(
             '''SELECT j.id, j.`real_name` FROM  `51job` j WHERE j.`id` > {} ORDER BY j.id;'''.format(last_id),
             self.conn)
-        companys_skb_df = self.get_companys_skb()
+
         print(time.clock() - start_time)
 
-        df = companys_51job_df[~companys_51job_df['real_name'].isin(companys_skb_df['company_name'].tolist())]
+        df = companys_51job_df[~companys_51job_df['real_name'].isin(self.companys_skb)]
         df = df.drop_duplicates(subset='real_name')
         print(len(df), "companys for crawling")
 
@@ -315,9 +316,9 @@ class SpiderLixiaoskb(object):
             '''SELECT j.id, j.`company_name` FROM  `lagou` j WHERE j.`id` > {} ORDER BY j.id;'''.format(last_id),
             self.conn)
 
-        companys_skb_df = self.get_companys_skb()
+
         print(time.clock() - start_time)
-        df = companys_lagou_df[~companys_lagou_df['company_name'].isin(companys_skb_df['company_name'].tolist())]
+        df = companys_lagou_df[~companys_lagou_df['company_name'].isin(self.companys_skb)]
         df = df.drop_duplicates(subset='company_name')
         print(len(df), "companys for crawling")
 
@@ -368,10 +369,12 @@ class SpiderLixiaoskb(object):
 
 
 if __name__ == '__main__':
+    spider = SpiderLixiaoskb()
+    ret = spider.main_database('51job')
     while(True):
         try:
             spider = SpiderLixiaoskb()
-            # spider.main_database('lagou')
+            # ret = spider.main_database('lagou')
             ret = spider.main_database('51job')
         except Exception as e:
             print(e)
