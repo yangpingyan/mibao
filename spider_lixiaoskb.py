@@ -358,9 +358,9 @@ class SpiderLixiaoskb(object):
                     print(base_table)
                     base_table['id_related'] = companys_df[companys_df['company_name'] == company]['id'].values[0]
                     self.insert_data(base_table)
-
+            self.browser.quit()
         self.close()
-        self.browser.quit()
+
         return 0
 
     def main(self, companys):
@@ -369,13 +369,12 @@ class SpiderLixiaoskb(object):
 
 
 if __name__ == '__main__':
-    spider = SpiderLixiaoskb()
-    ret = spider.main_database('51job')
+
     while(True):
         try:
             spider = SpiderLixiaoskb()
-            # ret = spider.main_database('lagou')
-            ret = spider.main_database('51job')
+            ret = spider.main_database('lagou')
+            # ret = spider.main_database('51job')
         except Exception as e:
             print(e)
             ret = -1
